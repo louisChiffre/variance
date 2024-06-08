@@ -9,7 +9,8 @@ def postOrderNodes(node):
         while c is not None:
             for m in dfs(c):
                 yield m
-            c = c.__next__
+            
+            c = c.next
         yield n
     for n in dfs(node):
         yield n
@@ -23,7 +24,7 @@ def preOrderNodes(node):
         while c is not None:
             for m in dfs(c):
                 yield m
-            c = c.__next__
+            c = c.next
     for n in dfs(node):
         yield n
 
@@ -44,7 +45,7 @@ def children(node):
     c = node.firstChild
     while c is not None:
         yield c
-        c = c.__next__
+        c = c.next
 
 
 class SuffixTree(_suffix_tree.SuffixTree):
@@ -135,7 +136,7 @@ sequences.'''
                 while c is not None:
                     pathIndices += c.pathIndices
                     sequences += c.sequences
-                    c = c.__next__
+                    c = c.next
 
                 seqsInSubtree = {}
                 for s in sequences:
