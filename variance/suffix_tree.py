@@ -1,6 +1,7 @@
 
 import _suffix_tree
 
+
 def postOrderNodes(node):
     '''Iterator through all nodes in the sub-tree rooted in node in
     post-order.'''
@@ -156,78 +157,4 @@ sequences.'''
 
 
 
-def simple_test():
-    print('SIMPLE TEST')
-    st = SuffixTree('mississippi','#')
-    assert st.string == 'mississippi#'
-    st = SuffixTree('mississippi')
-    assert st.string == 'mississippi$'
-
-    r = st.root
-    assert st.root == r
-    assert st.root.parent is None
-    assert st.root.firstChild.parent is not None
-    assert st.root.firstChild.parent == st.root
-
-    for n in st.postOrderNodes:
-        assert st.string[n.start:n.end+1] == n.edgeLabel
-
-    # collect path labels
-    for n in st.preOrderNodes:
-        p = n.parent
-        if p is None: # the root
-            n._pathLabel = ''
-        else:
-            n._pathLabel = p._pathLabel + n.edgeLabel
-
-    for n in st.postOrderNodes:
-        assert n.pathLabel == n._pathLabel
-
-    for l in st.leaves:
-        print('leaf:', '"'+l.pathLabel+'"', ':', '"'+l.edgeLabel+'"')
-
-    for n in st.innerNodes:
-        print('inner:', '"'+n.edgeLabel+'"')
-    print('done.\n\n')
-
-    del st
-
-def generalised_test():
-
-    print('GENERALISED TEST')
-    sequences = ['xabxa','babxba']
-    st = GeneralisedSuffixTree(sequences)
-
-    for shared in st.sharedSubstrings():
-        print('-'*70)
-        for seq,start,stop in shared:
-            print(seq, end=' ') 
-            print('['+str(start)+':'+str(stop)+']', end=' ')
-            print(sequences[seq][start:stop], end=' ')
-            print(sequences[seq][:start]+\
-                  '{'+sequences[seq][start:stop]+'}'+\
-                  sequences[seq][stop:])
-    print('='*70)
-
-    for shared in st.sharedSubstrings(2):
-        print('-'*70)
-        for seq,start,stop in shared:
-            print(seq, end=' ') 
-            print('['+str(start)+':'+str(stop)+']', end=' ')
-            print(sequences[seq][start:stop], end=' ')
-            print(sequences[seq][:start]+\
-                  '{'+sequences[seq][start:stop]+'}'+\
-                  sequences[seq][stop:])
-    print('='*70)
-
-    print('done.\n\n')
-
-
-def test():
-    simple_test()
-    generalised_test()
-
-
-if __name__ == '__main__':
-    test()
 
