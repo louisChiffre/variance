@@ -1,0 +1,79 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+*.dll
+*.dylib
+
+# Setuptools distribution folder
+*.egg-info/
+*.egg
+dist/
+build/
+*.o
+*.pyd
+
+# Poetry virtual environments
+.env
+.venv
+poetry.lock
+
+# Jupyter Notebook checkpoints
+.ipynb_checkpoints
+
+# VS Code settings and workspace files
+.vscode/
+
+# PyCharm settings
+.idea/
+
+# MacOS specific files
+.DS_Store
+
+# Linux specific files
+*.swp
+*.swo
+
+# Python project directories
+my_project/__pycache__/
+my_project/*.pyc
+
+# Compiled C extension files
+suffix-tree/*.o
+suffix-tree/*.so
+
+# CMake build directories (if you use CMake for building C extensions)
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+
+# Test reports
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+*.out
+*.pytest_cache/
+
+# mypy
+.mypy_cache/
+dmypy.json
+dmypy.json.5
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+*.orig
+*.swp
+*.swo
+*~
