@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Medite 😎😊</title>
+
+ <link rel="stylesheet" href="https://code.jquery.com/ui/1.13.1/themes/base/jquery-ui.css">
+  <link href="https://fonts.googleapis.com/css?family=PT+Mono" rel="stylesheet">
+  <link href="assets/demo.css" rel="stylesheet">
+  <script src="https://code.jquery.com/jquery-3.6.0.min.js" crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/ui/1.13.1/jquery-ui.min.js" crossorigin="anonymous"></script>
+  <script src="data.js"></script>
+  <script src="assets/index.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+</head>
+<body>
+<div class="grid-container">
+
+    <div class="box" id="editorjs">
+    </div>
+
+    <div class="box" id="editorjs2">
+    </div>
+    <div class="changes" id="changes">
+<div id="tabs">
+  <ul>
+    <li><a href="#replacements">Replacements</a></li>
+    <li><a href="#insertions">Insertions</a></li>
+    <li><a href="#deletions">Deletions</a></li>
+  </ul>
+  <div class="scrolling_div" id="replacements">
+  </div>
+  <div class="scrolling_div" id="insertions">
+  </div>
+  <div class="scrolling_div" id="deletions">
+  </div>
+
+</div>
+    </div>
+  
+</div>
+<div class="ce-example__button" id="saveButton">
+        editor.save()
+</div>
+  <!-- Load Tools -->
+  <!--
+   You can upload Tools to your project's directory and connect them by relative links.
+
+   Also you can load each Tool from CDN or use NPM/Yarn packages.
+
+   Read more at Tools Connection doc:
+   https://editorjs.io/getting-started#tools-connection
+   -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/header@latest"></script><!-- Header -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/simple-image@latest"></script><!-- Image -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/delimiter@latest"></script><!-- Delimiter -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/list@latest"></script><!-- List -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/checklist@latest"></script><!-- Checklist -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/quote@latest"></script><!-- Quote -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/paragraph@latest"></script><!-- Quote -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/code@latest"></script><!-- Code -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/embed@latest"></script><!-- Embed -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/table@latest"></script><!-- Table -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/link@latest"></script><!-- Link -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/warning@latest"></script><!-- Warning -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/marker@latest"></script><!-- Marker -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/inline-code@latest"></script><!-- Inline Code -->
+
+  <!-- Load Editor.js's Core -->
+  <script src="https://cdn.jsdelivr.net/npm/@editorjs/editorjs@latest"></script>
+
+  <!-- Initialization -->
+  <style>
+  .ce-fragment {
+    line-height: 1.6em;
+    outline: none;
+}
+</style>
+
+  <script>
+    $( function() { 
+        $( "#tabs" ).tabs(); 
+        $( "#replacements" ).append(replacements_txt); 
+        $( "#deletions" ).append(deletions_txt); 
+        $( "#insertions" ).append(insertions_txt); 
+    } 
+    );
+    /**
+     * To initialize the Editor, create a new instance with configuration object
+     * @see docs/installation.md for mode details
+     */
+    /*
+    if(localStorage.getItem('blocks_1')) {
+        console.log('loading block_1')
+        blocks_1 = JSON.parse(localStorage.getItem('blocks_1'));
+    }
+    else
+    {
+        console.log('no block_1')
+    }
+    if(localStorage.getItem('blocks_2')) {
+        console.log('loading block_2')
+        blocks_2 = JSON.parse(localStorage.getItem('blocks_2'));
+
+    }
+    */
+
+    var editor = new EditorJS({
+      readOnly: true,
+      holder: 'editorjs',
+      inlineToolbar: ['link', 'marker', 'bold', 'italic'],
+      tools: {
+        fragment: { class: Fragment, 
+            },
+        comment: { class: Paragraph,
+            shortcut: 'CMD+SHIFT+L',
+        },
+
+        marker: {
+          class:  Marker,
+          shortcut: 'CMD+SHIFT+M'
+        },
+      },
+      defaultBlock: 'paragraph',
+      data: {
+        blocks: blocks_1 
+      },
+      onReady: function(){
+        //saveButton.click();
+      },
+      onChange: function(api, event) {
+        //console.log('something changed in editor 1', event);
+      }
+    });
+    var editor2 = new EditorJS({
+      readOnly: true,
+      holder: 'editorjs2',
+      tools: {
+        fragment: { class: Fragment, },
+        marker: {
+          class:  Marker,
+          shortcut: 'CMD+SHIFT+M'
+        },
+      },
+      defaultBlock: 'paragraph',
+      data: {
+        blocks: blocks_2
+      },
+      onReady: function(){
+        //saveButton.click();
+        //console.log('ready 2');
+      },
+      onChange: function(api, event) {
+        console.log('something changed', event);
+      }
+    });
+function scroll_this(el)
+{
+    $("span[id='"+el.id+"']").each(function(i, el) { el.scrollIntoView(
+        {behavior: "smooth", block: "center", inline: "nearest"}
+    )})
+    var s = 500 
+    $("span[id='"+el.id+"']").each(function(i, el) { 
+        $(el).fadeOut(s).fadeIn(s).fadeOut(s).fadeIn(s) 
+    })
+}
+$("head").append('<style>.ce-paragraph { line-height: 1.6em; outline: none; font-style: italic; }</style>');
+  //we wait before doing anything
+  Promise.all([editor.isReady, editor2.isReady]).then(function() {
+    console.log('editor 1 and 2 are ready');
+
+    saveButton.addEventListener('click', function () {
+      editor.save()
+        .then((savedData) => {
+            console.log('saving editor 1');
+            localStorage.setItem('blocks_1', JSON.stringify(savedData.blocks))
+
+        })
+        .catch((error) => {
+          console.error('Saving error', error);
+        });
+      editor2.save()
+        .then((savedData) => {
+            console.log('saving editor 2');
+            localStorage.setItem('blocks_2', JSON.stringify(savedData.blocks))
+        })
+        .catch((error) => {
+          console.error('Saving error', error);
+        });
+
+    });
+
+});
+
+  </script>
+</body>
+</html>

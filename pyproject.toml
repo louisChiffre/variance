@@ -9,6 +9,8 @@ readme = "README.md"
 python = "^3.12"
 setuptools = "^70.0.0"
 ipython = "^8.25.0"
+pandas = "^2.2.2"
+nltk = "^3.8.1"
 
 
 [tool.poetry.group.dev.dependencies]
