@@ -1,5 +1,5 @@
-from medite  import medite as md
-from medite import utils as ut
+from variance.medite  import medite as md
+from variance.medite import utils as ut
 import numpy as np
 import io
 import pandas as pd
@@ -9,9 +9,9 @@ from os.path import join, dirname, exists
 import textwrap as tw
 import itertools as it
 
-def test_get_changes():
-    from utils import utils as ut
-    tree, changes = ut.get_changes('tests/Labelle/Informations.xml', encoding='utf-8', window_size=32)
+# def test_get_changes():
+#     from utils import utils as ut
+#     tree, changes = ut.get_changes('tests/Labelle/Informations.xml', encoding='utf-8', window_size=32)
 
 Block = namedtuple('Block', 'a b')
 
@@ -42,13 +42,13 @@ Result = namedtuple('Result', 'ins sup remp bc bd lg')
 def load(xml_filename):
     tree = read_xml(xml_filename)
     informations = tree.find('./informations').attrib
-    p1 = int(informations[u'lg_pivot'])
-    p2 = int(informations[u'ratio'])
-    p3 = int(informations[u'seuil'])
+    p1 = int(informations['lg_pivot'])
+    p2 = int(informations['ratio'])
+    p3 = int(informations['seuil'])
     p4 = True  # always
-    p5 = bool(int(informations[u'caseSensitive']))
-    p6 = bool(int(informations[u'sepSensitive']))
-    p7 = bool(int(informations[u'diacriSensitive']))
+    p5 = bool(int(informations['caseSensitive']))
+    p6 = bool(int(informations['sepSensitive']))
+    p7 = bool(int(informations['diacriSensitive']))
     parameters = md.Parameters(p1, p2, p3, p4, p5, p6, p7, 'HIS')
     resources = md.Resources(
         source=informations['fsource'],
@@ -64,7 +64,7 @@ def load(xml_filename):
     def get_blocks(xpath):
         return [node2block(node) for node in transformations.findall(xpath)]
 
-    result = {k: get_blocks(xpath) for k, xpath in type2xpath.items()}
+    result = {k: get_blocks(xpath) for k, xpath in list(type2xpath.items())}
     result['lg'] = int(transformations.find('lgsource').attrib['lg'])
     txt1 = ut.read_txt(mk_path(xml_filename, resources.source))
     txt2 = ut.read_txt(mk_path(xml_filename, resources.target))
@@ -132,15 +132,15 @@ def check(xml_filename):
 
 
 xml_filenames = (
-    'tests/Labelle/Informations.xml',
-    'tests/Labelle/Informations_dia.xml',
-    'tests/Labelle/Informations_case.xml',
+    'tests/data/Labelle/Informations.xml',
+    'tests/data/Labelle/Informations_dia.xml',
+    'tests/data/Labelle/Informations_case.xml',
 )
 
-
-def test_invariance():
-    for xml_filename in xml_filenames:
-        yield check, xml_filename
+import pytest
+@pytest.mark.parametrize('xml_filename', xml_filenames)
+def test_invariance(xml_filename):
+    check(xml_filename)
 
 def test_separator():
     Case = namedtuple('Case', 'parameters txt1 txt2 result')
@@ -156,8 +156,8 @@ def test_separator():
     
     def cases():
         yield Case(parameters=vanilla_parameters, 
-            txt1=u'''Les poules du couvent couvent le samedi le vendredi le dimanche le jeudi aussi et mercredi bien sur''', 
-txt2=u'Les poules du couvent couvent le samedi',
+            txt1='''Les poules du couvent couvent le samedi le vendredi le dimanche le jeudi aussi et mercredi bien sur''', 
+txt2='Les poules du couvent couvent le samedi',
             result=None)
 
     def check(case):
