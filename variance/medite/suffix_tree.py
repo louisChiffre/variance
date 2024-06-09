@@ -16,7 +16,7 @@
 #    along with Foobar; if not, write to the Free Software
 #    Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from __future__ import generators
+
 #from __future__ import absolute_import
 
 import sys
@@ -29,7 +29,7 @@ import os.path
 import numpy as Numeric
 #import psyco
 
-import recouvrement
+from . import recouvrement
 import _suffix_tree
 
 
@@ -37,11 +37,11 @@ def children(node):
     child = node.firstChild
     while child:
         yield child
-        child = child.next
+        child = child.__next__
 
 
 class SuffixTreeInterface(object):
-    """Fonctions de parcours de l'arbre et de recherche des chaines répétées"""
+    """Fonctions de parcours de l'arbre et de recherche des chaines rï¿½pï¿½tï¿½es"""
 
     def generate_post_order_nodes(self):
         'Iterator through all nodes in the tree in post-order.'
@@ -75,7 +75,7 @@ that can be written using the primitives exported from C.  """
         """Build a suffix tree from the input string s. The string
 must not contain the special symbol $."""
         if '$' in s:
-            raise "The suffix tree string must not contain $!"
+            raise Exception("The suffix tree string must not contain $!")
         self.sequence = s
         #print len(s)
         # s = unicode(s,'utf-8') #raw_unicode_escape')
@@ -83,7 +83,7 @@ must not contain the special symbol $."""
         # if isinstance(s, unicode):
         #    s = s.encode('utf-8')
         #print "SuffixTree.__init__ type(s) ",type(s) ," len ",len(s)
-        _suffix_tree.SuffixTree.__init__(self, s, u'#')
+        _suffix_tree.SuffixTree.__init__(self, s, '#')
 
 
 class TrueGeneralisedSuffixTree(SuffixTree):
@@ -98,7 +98,7 @@ sequences.'''
         self.sequences = sequences
         self.start_positions = [0]
         self.concat_string = ''
-        for i in xrange(len(sequences)):
+        for i in range(len(sequences)):
             if chr(i+1) in sequences[i]:
                 raise "The suffix tree string must not contain chr(%d)!" % (
                     i+1)
@@ -114,10 +114,10 @@ sequences.'''
 
     def _translate_index(self, idx):
         'Translate a concat-string index into a (string_no,idx) pair.'
-        for i in xrange(len(self.start_positions)-1):
+        for i in range(len(self.start_positions)-1):
             if self.start_positions[i] <= idx < self.start_positions[i+1]:
                 return (i, idx-self.start_positions[i])
-        raise IndexError, "Index out of range: "+str(idx)
+        raise IndexError("Index out of range: "+str(idx))
 
     def _annotate_nodes(self):
         for n in self.post_order_nodes:
@@ -142,13 +142,13 @@ sequences.'''
                 n.nb_occ = len(n.path_indices)
 
     def get_seq_repeat(self, min_size=1):
-        # à chaque position de seq_repeat doit correspondre la position
-        # de la fin de la répétition la plus longue commençant à cette position
+        # ï¿½ chaque position de seq_repeat doit correspondre la position
+        # de la fin de la rï¿½pï¿½tition la plus longue commenï¿½ant ï¿½ cette position
         #print self.root.__str__(self.concat_string, short=True)
         longueur_seq1 = len(self.sequences[0])
         seq_repeat_deb = Numeric.zeros(len(self.concat_string), Numeric.int)
         seq_repeat_fin = Numeric.zeros(len(self.concat_string), Numeric.int)
-        for i in xrange(len(self.concat_string)):
+        for i in range(len(self.concat_string)):
             seq_repeat_deb[i] = i
             seq_repeat_fin[i] = i
         i = nbpitot = 0
@@ -201,12 +201,12 @@ sequences.'''
                             #        seq_repeat[pi] = (pi,pi+longueur_chaine)
                             # except KeyError:
                             #    seq_repeat[pi] = (pi,pi+longueur_chaine)
-                            for pos in xrange(pi, pi+longueur_chaine):
+                            for pos in range(pi, pi+longueur_chaine):
                                 # for pos in xrange(pi+longueur_chaine,pi,-1):
                                 # if (seq_repeat[pos][1] < pi+longueur_chaine or
                                 #    pi < seq_repeat[pos][0]  and seq_repeat[pos][1] == pi+longueur_chaine):
                                 #    seq_repeat[pos] = (pi,pi+longueur_chaine)
-                               # si bloc décrit à la pos sourante est inclus dans le bloc qu'on ajoute
+                               # si bloc dï¿½crit ï¿½ la pos sourante est inclus dans le bloc qu'on ajoute
                                 if (pi <= seq_repeat_deb[pos] <= seq_repeat_fin[pos] <= pi+longueur_chaine or
                                         seq_repeat_deb[pos] <= pi <= seq_repeat_fin[pos] <= pi+longueur_chaine):
                                     seq_repeat_deb[pos] = pi
@@ -230,15 +230,15 @@ sequences.'''
 class GeneralisedSuffixTree(object):
 
     """Classe proxy qui construit un GeneralisedSuffixTree
-    Celui-ci est construit et on extrait les infos nécessaires pour trouver les MEM
-    Ensuite on supprime l'objet GeneralisedSuffixTree, ce qui permet d'économiser beaucoup de mémoire"""
+    Celui-ci est construit et on extrait les infos nï¿½cessaires pour trouver les MEM
+    Ensuite on supprime l'objet GeneralisedSuffixTree, ce qui permet d'ï¿½conomiser beaucoup de mï¿½moire"""
 
     def __init__(self, sequences):
 
         self.sequences = sequences
         self.start_positions = [0]
         self.concat_string = ''
-        for i in xrange(len(sequences)):
+        for i in range(len(sequences)):
             if chr(i+1) in sequences[i]:
                 raise "The suffix tree string must not contain chr(%d)!" % (
                     i+1)
@@ -253,11 +253,11 @@ class GeneralisedSuffixTree(object):
     def get_MEM(self, min_size=1):
         """Renvoie un dico de tous les Maximal Exact Matches de taille min min_size
 
-        Le dico est indexé par la taille de MEM qui renvoie une liste de toutes 
+        Le dico est indexï¿½ par la taille de MEM qui renvoie une liste de toutes 
         les positions de cette taille.
-        Linéaire(nb de MEM) < linéaire(taille de la séquence)"""
+        Linï¿½aire(nb de MEM) < linï¿½aire(taille de la sï¿½quence)"""
         seq_repeat_deb, seq_repeat_fin = self.st.get_seq_repeat(min_size)
-        del self.st  # permet d'économiser beaucoup de mémoire
+        del self.st  # permet d'ï¿½conomiser beaucoup de mï¿½moire
         logging.debug("suffixTree deleted")
         dic_MEM = {}
         longueur_s1 = len(self.sequences[0])
@@ -266,7 +266,7 @@ class GeneralisedSuffixTree(object):
         # if self.sequences[0] == u': Enfin pourtant la Reyne':
         #    import ipdb;ipdb.set_trace()
         while pos >= 0:
-            # attention, ne pas mélanger debut et pos_debut, 2 compteurs différents
+            # attention, ne pas mï¿½langer debut et pos_debut, 2 compteurs diffï¿½rents
             debut = seq_repeat_deb[pos]
             fin = seq_repeat_fin[pos]
             if fin > debut:
@@ -276,7 +276,7 @@ class GeneralisedSuffixTree(object):
                 else:
                     pos_debut = debut
                 t = hash(texte[pos_debut:pos_debut+longueur])
-                if not dic_MEM.has_key(longueur):
+                if longueur not in dic_MEM:
                     dic_MEM[longueur] = {}
                 try:
                     dic_MEM[longueur][t].append(pos_debut)
@@ -290,8 +290,8 @@ class GeneralisedSuffixTree(object):
         return dic_MEM
 
     def get_MEM_index_chaine2(self, min_size=1):
-        """ Modifie les coordonnées de  la 2e chaine en retirant 1 
-        à cause du séparateur pour le suffix tree """
+        """ Modifie les coordonnï¿½es de  la 2e chaine en retirant 1 
+        ï¿½ cause du sï¿½parateur pour le suffix tree """
         seq_repeat = self.get_MEM(min_size)
         logging.log(5, 'get_MEM done')
         return seq_repeat
@@ -299,17 +299,17 @@ class GeneralisedSuffixTree(object):
     # mode mot ou char
     def get_MEM_index_chaine3(self, carOuMot, min_size=1, eliminRecouv=True):
         just_keep_words = carOuMot
-        """ just_keep_words: si Vrai, on rogne les homologies de façon à n'avoir que des mots 
+        """ just_keep_words: si Vrai, on rogne les homologies de faï¿½on ï¿½ n'avoir que des mots 
         (ou suites de mots) entiers 
-        renvoie un dico indexé par (cle,longueur) ou cle représente hash(chaine) la chaine 
-        dont on fait référence et la longueur de la chaine, la valeur et la liste d'occurences
+        renvoie un dico indexï¿½ par (cle,longueur) ou cle reprï¿½sente hash(chaine) la chaine 
+        dont on fait rï¿½fï¿½rence et la longueur de la chaine, la valeur et la liste d'occurences
         de la chaine"""
         seq = self.get_MEM_index_chaine2(min_size)
         logging.log(5, 'get_MEM_index_chaine2 done')
         #logging.debug('Recouv 4 eliminrecouv')
         texte = self.sequences[0]+self.sequences[1]
-        for longueur, dicoOcc in seq.iteritems():
-            for cle_hash, lOcc in dicoOcc.iteritems():
+        for longueur, dicoOcc in list(seq.items()):
+            for cle_hash, lOcc in list(dicoOcc.items()):
                 # for occ in lOcc:
                 #    logging.debug(texte[occ:occ+longueur])
                 logging.debug(texte[lOcc[0]:lOcc[0]+longueur])
@@ -324,8 +324,8 @@ class GeneralisedSuffixTree(object):
             blocs = {}
             #blocs.NOSMEM_nb_bloc = 0
             texte = self.sequences[0]+self.sequences[1]
-            for longueur, dicoOcc in seq.iteritems():
-                for cle_hash, lOcc in dicoOcc.iteritems():
+            for longueur, dicoOcc in list(seq.items()):
+                for cle_hash, lOcc in list(dicoOcc.items()):
                     for occ in lOcc:
                         cle = hash(texte[occ:occ+longueur])
                         try:
@@ -337,26 +337,26 @@ class GeneralisedSuffixTree(object):
         dic_chaine2 = {}
         longueur_s1 = len(self.sequences[0])
         #print len(blocs),longueur_s1,len(self.sequences[0])+len(self.sequences[1]),min_size
-        # ATTENTION le 1er espace (début de liste) est l'espace habituel
-        # le second (fin de liste) est ALT+0160 qui est un espace insécable inséré, en particulier,
+        # ATTENTION le 1er espace (dï¿½but de liste) est l'espace habituel
+        # le second (fin de liste) est ALT+0160 qui est un espace insï¿½cable insï¿½rï¿½, en particulier,
         # par Word avant les ponctuations faibles : ; ! ? et guillemets
-        # sep = u""". !\r,\n:\t;-?"'`’() """ #liste des séparateurs
-        # ’
-        sep = u""". !\r,\n:\t;-?"'`\u2019() """  # liste des séparateurs
+        # sep = u""". !\r,\n:\t;-?"'`ï¿½()ï¿½""" #liste des sï¿½parateurs
+        # ï¿½
+        sep = """. !\r,\n:\t;-?"'`\\u2019()ï¿½"""  # liste des sï¿½parateurs
         # if len(self.sequences[1])==20951:
         #    assert len([k for k in self.sequences[1] if k in sep]) == 4725
-        # on ne garde que les chaine de taille > min et répétées
-        for (cle, longueur), liste_pos in blocs.iteritems():
+        # on ne garde que les chaine de taille > min et rï¿½pï¿½tï¿½es
+        for (cle, longueur), liste_pos in list(blocs.items()):
             if (longueur >= min_size and len(liste_pos) >= 2):
-                # on inverse car les pos ont été ajoutées dans l'ordre décroissant dans get_MEM
+                # on inverse car les pos ont ï¿½tï¿½ ajoutï¿½es dans l'ordre dï¿½croissant dans get_MEM
                 liste_pos.reverse()
                 if (liste_pos[0] < longueur_s1 <= liste_pos[-1]):
                     if just_keep_words:
-                        # basé sur seulement 2 homologies dans la liste, quid du comportement avec + d'homologies ?
-                        # car pour couper une homologies, on regarde les caractères précédents et suivants
-                        # dans les 2 chaines, la premiere de la liste (texte 1) et la dernière (texte 2)
+                        # basï¿½ sur seulement 2 homologies dans la liste, quid du comportement avec + d'homologies ?
+                        # car pour couper une homologies, on regarde les caractï¿½res prï¿½cï¿½dents et suivants
+                        # dans les 2 chaines, la premiere de la liste (texte 1) et la derniï¿½re (texte 2)
                         #logging.debug( '1:' +self.sequences[0][liste_pos[0]:liste_pos[0]+longueur]+'/'+str(liste_pos))
-                        # les car de début et fin des chaines doivent êrre égaux
+                        # les car de dï¿½but et fin des chaines doivent ï¿½rre ï¿½gaux
                         assert self.sequences[0][liste_pos[0]
                                                  ] == self.sequences[1][liste_pos[-1]-longueur_s1]
                         assert self.sequences[0][liste_pos[0]+longueur-1] == self.sequences[1][liste_pos[-1]+longueur-1-longueur_s1], chaine+' / '+self.sequences[0][liste_pos[0]:liste_pos[0]+longueur]+' / ' + \
@@ -364,12 +364,12 @@ class GeneralisedSuffixTree(object):
                             self.sequences[0][liste_pos[0]+longueur]+'* / *' + \
                             self.sequences[1][liste_pos[-1] +
                                               longueur-longueur_s1]+'**'
-                        # recherche du premier séparateur dans la chaine
+                        # recherche du premier sï¿½parateur dans la chaine
                         i = liste_pos[0]
                         i2 = liste_pos[-1]
                         if (i == 0 or self.sequences[0][i-1] in sep) and (i2-longueur_s1 == 0 or self.sequences[1][i2-1-longueur_s1] in sep):
-                            # soit début de séquence et dans ce cas le car précédent est forcément un sep car on est en mode mot
-                            # soit caractère précédent est un séparateur
+                            # soit dï¿½but de sï¿½quence et dans ce cas le car prï¿½cï¿½dent est forcï¿½ment un sep car on est en mode mot
+                            # soit caractï¿½re prï¿½cï¿½dent est un sï¿½parateur
                             decalage_avant = 0
                         else:  # sinon on cherche le 1er sep dans la chaine courante
                             while (i < liste_pos[0]+longueur and self.sequences[0][i] not in sep and
@@ -379,12 +379,12 @@ class GeneralisedSuffixTree(object):
                             decalage_avant = i - liste_pos[0]
 
                         assert i >= liste_pos[0]
-                        # recherche du séparateur le + à droite dans la chaine
+                        # recherche du sï¿½parateur le + ï¿½ droite dans la chaine
                         j = liste_pos[0]+longueur-1
                         j2 = liste_pos[-1]+longueur-1
                         if ((j == len(self.sequences[0])-1 or self.sequences[0][j+1] in sep) and
                                 (j2-longueur_s1 == len(self.sequences[1])-1 or self.sequences[1][j2+1-longueur_s1] in sep)):
-                            pass  # idem que i: car de fin de séquence ou car precedent sep
+                            pass  # idem que i: car de fin de sï¿½quence ou car precedent sep
                         else:
                             while (j >= liste_pos[0] and self.sequences[0][j] not in sep and
                                    j2 >= liste_pos[-1] and self.sequences[1][j2-longueur_s1] not in sep):
@@ -405,9 +405,9 @@ class GeneralisedSuffixTree(object):
         #print 'dic_chaine2:'+str(dic_chaine2)
         # print len(dic_chaine2)#,dic_chaine2
         logging.log(10, 'len(blocs)='+str(len(blocs))+' / len(dic_chaine2)='+str(len(dic_chaine2))
-                    + ' / taille chaines dic_chaine2='+str(sum([longueur*len(li) for (c, longueur), li in dic_chaine2.iteritems()])))
+                    + ' / taille chaines dic_chaine2='+str(sum([longueur*len(li) for (c, longueur), li in list(dic_chaine2.items())])))
         texte = self.sequences[0] + self.sequences[1]
-        for (cle, longueur), lOcc in dic_chaine2.iteritems():
+        for (cle, longueur), lOcc in list(dic_chaine2.items()):
             logging.debug(texte[lOcc[0]:lOcc[0]+longueur])
         # if len(self.sequences[1])==20951:
         #    assert sum([sum(k) for k in dic_chaine2.values()]) == 21135295

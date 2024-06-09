@@ -23,15 +23,15 @@ import bisect
 import gc
 from math import *
 #import psyco
-import suffix_tree
-import recouvrement
-import utile
+from . import suffix_tree
+from . import recouvrement
+from . import utile
 #import numpy.oldnumeric as Numeric
-import utile as ut
+from . import utile as ut
 import numpy as Numeric
 import numpy as numarray
 import numpy
-import aligne
+from . import aligne
 #import cost
 #print dir(cost)
 krange = range
@@ -166,7 +166,7 @@ class AlignAstarRecur(Align):
         #print dicDep
         LDep = []
         # LUnique=[]
-        for (cle, longueur), locc in dicDep.iteritems():
+        for (cle, longueur), locc in list(dicDep.items()):
             #len_clef = len(clef)
             if self.repetition(locc, self.l_texte1):
                 assert texte1[locc[0]:locc[0]+longueur] == texte2[locc[-1]-self.l_texte1:locc[-1]-self.l_texte1 +
@@ -392,7 +392,7 @@ class AlignAstarRecur(Align):
         NL1 = []
         NL2 = []
         len_t1 = len(t1)
-        for (cle, longueur), liste_occ in blocs_texte.iteritems():
+        for (cle, longueur), liste_occ in list(blocs_texte.items()):
             # len_clef = fin - debut #len(clef)
             for occ in iter(liste_occ):
                 if occ < len_t1:
@@ -412,7 +412,7 @@ class AlignAstarRecur(Align):
         #    import ipdb;ipdb.set_trace()
         notUnique = {}
         unique = {}
-        for cle, listePos in dic.iteritems():
+        for cle, listePos in list(dic.items()):
             if self.repetition(listePos, l_texte1):
                 notUnique[cle] = listePos
             else:

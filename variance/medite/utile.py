@@ -102,7 +102,7 @@ def addition_intervalle(L, C):  # ajoute un intervalle de valeurs, sans
 
 def longueur(L):  # longueur d'une liste d'intervalles, c'est-à-dire longueur de la chaîne couverte par la liste
     n = 0
-    while L <> []:
+    while L != []:
         n = n + L[0][1] - L[0][0]
         #L = L[1:]
         L.pop(0)

@@ -4,9 +4,9 @@ import time
 import logging
 from collections import namedtuple
 
-import alignement
-import utile as ut
-import synthetic
+from . import alignement
+from . import utile as ut
+from . import synthetic
 
 Parameters = namedtuple(
     'Parameters', 'lg_pivot ratio seuil car_mot case_sensitive sep_sensitive diacri_sensitive algo')
@@ -42,9 +42,9 @@ class DiffTexts(object):
         def s2ord(x):
             return [ord(k) for k in x]
         if not self.parameters.diacri_sensitive:
-            tabin = s2ord(u"çéèàùâêîôûäëïöüÿÇÉÈÀÙÂÊÎÔÛÄËÏÖÜ")
-            tabout = s2ord(u"ceeauaeiouaeiouyCEEAUAEIOUAEIOU")
-            self.sepTable = dict(zip(tabin, tabout))
+            tabin = s2ord("çéèàùâêîôûäëïöüÿÇÉÈÀÙÂÊÎÔÛÄËÏÖÜ")
+            tabout = s2ord("ceeauaeiouaeiouyCEEAUAEIOUAEIOU")
+            self.sepTable = dict(list(zip(tabin, tabout)))
             self.texte1 = self.texte1.translate(self.sepTable)
             self.texte2 = self.texte2.translate(self.sepTable)
 

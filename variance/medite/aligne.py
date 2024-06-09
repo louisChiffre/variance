@@ -38,7 +38,7 @@ class AlignLIS (Alignement):
         tailleCouverture = 0
         couverture = []
         couvertureLast = []
-        for i in xrange(len(pi)):
+        for i in range(len(pi)):
             j = 0
 
             while (j < tailleCouverture) and (pi[i][0] > couvertureLast[j]):
@@ -67,7 +67,7 @@ class AlignLIS (Alignement):
         @return: positions auxquelles on a trouvé c dans l
         """
         r = []
-        for i in xrange(len(l)):
+        for i in range(len(l)):
             if c == l[i]:
                 r.append((i, posC))
 
@@ -84,7 +84,7 @@ class AlignLIS (Alignement):
         @return : liste des positions de chaque élément de S1 dans S2 dans l'ordre décroissant
         """
         PI = []
-        for i in xrange(len(S1)):
+        for i in range(len(S1)):
             PI.extend(self._posOcurrences(S1[i], S2, i))
         return PI
 
@@ -102,7 +102,7 @@ class AlignLIS (Alignement):
 
         key1 = []
         key2 = []
-        for i in xrange(len(lcis)):
+        for i in range(len(lcis)):
             key2.append(lcis[i][1])
             key1.append(lcis[i][0])
 
@@ -115,27 +115,27 @@ class AlignLIS (Alignement):
         lastkey = 0
         for key in key2:
             l = []
-            for i in xrange(lastkey, key):
+            for i in range(lastkey, key):
                 l.append(L2[i])
             res1.append((L2[key], l))
             lastkey = key+1
         if lastkey < len(L2):
             l = []
-            for i in xrange(lastkey, len(L2)):
+            for i in range(lastkey, len(L2)):
                 l.append(L2[i])
             res1.append((None, l))
 
         lastkey = 0
         for key in key1:
             l = []
-            for i in xrange(lastkey, key):
+            for i in range(lastkey, key):
                 l.append(L1[i])
             res2.append((L1[key], l))
             lastkey = key+1
 
         if lastkey < len(L1):
             l = []
-            for i in xrange(lastkey, len(L1)):
+            for i in range(lastkey, len(L1)):
                 l.append(L1[i])
             res2.append((None, l))
 
@@ -155,7 +155,7 @@ class AlignHIS (AlignLIS):
         @return: positions auxquelles on a trouvé c dans l
         """
         r = []
-        for i in xrange(len(l)):
+        for i in range(len(l)):
             if c == l[i]:
                 r.append((i, posC, c))
 
@@ -205,7 +205,7 @@ class AlignHIS (AlignLIS):
         debug = False
         x = couverture[i][r]
         if debug:
-            print x
+            print(x)
         I.append(x)
         while (i > 0):
             trouve = False
@@ -214,7 +214,7 @@ class AlignHIS (AlignLIS):
             # on cherche l'élément de position maximal précédent le dernier élément placé dans la plus longue sous-séquence commune
             # (les éléments sont triés par ordre de position décroissante dans les séquences de la couverture)
             if debug:
-                print couverture[i-1]
+                print((couverture[i-1]))
             while j < len(couverture[i-1]):  # trouve == False :
                 element = couverture[i-1][j]
                 pos = element[0]
@@ -227,7 +227,7 @@ class AlignHIS (AlignLIS):
                     j += 1
             assert len(liste_y) > 0
             if debug:
-                print liste_y
+                print(liste_y)
             max_y = 0
             for candy in liste_y:
                 poids = candy[2][1]
@@ -238,13 +238,13 @@ class AlignHIS (AlignLIS):
             i -= 1
             I.append(x)
             if debug:
-                print x
+                print(x)
             if debug:
-                print '-------------'
+                print('-------------')
         if debug:
-            print '===================='
+            print('====================')
         assert len(I) == len(couverture)
         I.reverse()
         if debug:
-            print I
+            print(I)
         return I

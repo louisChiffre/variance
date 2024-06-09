@@ -22,7 +22,7 @@ import bisect
 import sys
 import random
 import numpy as Numeric
-import utile
+from . import utile
 
 
 class Recouvrement(object):
@@ -71,9 +71,9 @@ class Recouvrement(object):
 
         if not match:  # sinon, on parcours tout le recouvrement dans un sens ou l'autre
             if tailleChAnt <= tailleChPost:
-                L = range(I[0], I[1] + 1)
+                L = list(range(I[0], I[1] + 1))
             else:
-                L = range(I[1], I[0]-1, -1)
+                L = list(range(I[1], I[0]-1, -1))
             res = L[0]
             #L = range(I[0], I[1]+1)
             # for x in L:
@@ -125,7 +125,7 @@ class Recouvrement4(Recouvrement3):
         longueur_totale = self.lg_texte1+self.lg_texte2+1
         self.seq_repeat_deb = Numeric.zeros(longueur_totale, Numeric.int)
         self.seq_repeat_fin = Numeric.zeros(longueur_totale, Numeric.int)
-        for i in xrange(longueur_totale):
+        for i in range(longueur_totale):
             # self.seq_repeat.append((i,i))
             self.seq_repeat_deb[i] = i
             self.seq_repeat_fin[i] = i
@@ -170,7 +170,7 @@ class Recouvrement4(Recouvrement3):
         # logging.debug('fin recouv self.totalAjout=%d / self.totalRogneG=%d / self.totalRogneD=%d / self.nb_reinclusion=%d / len(self.res)=%d',
         #                self.totalAjout,self.totalRogneG,self.totalRogneD,self.nb_reinclusion,len(self.res))
         #logging.debug('self.res = '+str(self.res))
-        for cle, lOcc in self.res.iteritems():
+        for cle, lOcc in list(self.res.items()):
             lOcc.reverse()  # on reverse car dans la suite dans l'algo c'est nécessaire
 
         return self.res
@@ -240,7 +240,7 @@ class Recouvrement4(Recouvrement3):
                 longueur_prec = fin_prec - debut_prec  # longueur bloc précédent
                 # clé bloc précédent
                 cle_prec = hash(self.texte[debut_prec:fin_prec])
-                if self.dicoOccLiee.has_key((cle_prec, longueur_prec)):
+                if (cle_prec, longueur_prec) in self.dicoOccLiee:
                     # liste des occ du bloc précédent
                     locc_prec = list(
                         self.dicoOccLiee[(cle_prec, longueur_prec)])
@@ -249,7 +249,7 @@ class Recouvrement4(Recouvrement3):
                     locc_prec = [debut_prec]
                 for debut_occ_prec in locc_prec:  # pour chaque occ du bloc précédent, on va le césurer
                     # chaque caractère du bloc est modifié dans self.seq_repeat
-                    for i in xrange(debut_occ_prec, debut_occ_prec+longueur_prec):
+                    for i in range(debut_occ_prec, debut_occ_prec+longueur_prec):
                         if i < debut_occ_prec+pos_cesure:
                             #self.seq_repeat[i] = (debut_occ_prec,debut_occ_prec+pos_cesure)
                             self.seq_repeat_deb[i] = debut_occ_prec
@@ -260,7 +260,7 @@ class Recouvrement4(Recouvrement3):
                             self.seq_repeat_fin[i] = i
                     self.totalRogneG += 1
                 # suppression de l'ancienne chaine du bloc dans le dico et ajout du nouveau bloc précédent césuré
-                if self.dicoOccLiee.has_key((cle_prec, longueur_prec)):
+                if (cle_prec, longueur_prec) in self.dicoOccLiee:
                     del self.dicoOccLiee[(cle_prec, longueur_prec)]
                 try:
                     self.dicoOccLiee[hash(
@@ -279,7 +279,7 @@ class Recouvrement4(Recouvrement3):
                 # cle du bloc suivant
                 cle_suiv = hash(self.texte[debut_suiv:fin_suiv])
                 # occurrences du bloc suivant
-                if self.dicoOccLiee.has_key((cle_suiv, longueur_suiv)):
+                if (cle_suiv, longueur_suiv) in self.dicoOccLiee:
                     locc_suiv = list(
                         self.dicoOccLiee[(cle_suiv, longueur_suiv)])
                 else:
@@ -289,7 +289,7 @@ class Recouvrement4(Recouvrement3):
                 nouv_locc_suiv = []  # nouvelle liste des occurrences du bloc suivant après césure
                 for debut_occ_suiv in locc_suiv:  # pour chaque occurrence du bloc suivant
                     # chaque caractère du bloc suivant à césurer
-                    for i in xrange(debut_occ_suiv, debut_occ_suiv+longueur_suiv):
+                    for i in range(debut_occ_suiv, debut_occ_suiv+longueur_suiv):
                         if i < debut_occ_suiv+pos_cesure:
                             # self.seq_repeat[i] = (i,i) # partie à césurer
                             self.seq_repeat_deb[i] = i
@@ -303,7 +303,7 @@ class Recouvrement4(Recouvrement3):
                     nouv_locc_suiv.append(debut_occ_suiv+pos_cesure)
                     self.totalRogneD += 1
                 # suppression de l'ancienne chaine du bloc dans le dico et ajout du nouveau bloc suivant césuré
-                if self.dicoOccLiee.has_key((cle_suiv, longueur_suiv)):
+                if (cle_suiv, longueur_suiv) in self.dicoOccLiee:
                     del self.dicoOccLiee[(cle_suiv, longueur_suiv)]
                 try:
                     self.dicoOccLiee[hash(self.texte[nouv_locc_suiv[0]:nouv_locc_suiv[0] +
@@ -314,7 +314,7 @@ class Recouvrement4(Recouvrement3):
             # ajout effectif du bloc après le travail de mise à jour des blocs chevauchants
             #if debut < fin_prec: assert self.seq_repeat[debut] == (debut,debut), self.seq_repeat[debut-5:debut+5]
             #if debut_suiv < fin: assert self.seq_repeat[fin] == (fin,fin), self.seq_repeat[fin-5:fin+5]
-            for i in xrange(debut, fin):
+            for i in range(debut, fin):
                 #self.seq_repeat[i] = (debut,fin)
                 self.seq_repeat_deb[i] = debut
                 self.seq_repeat_fin[i] = fin
@@ -383,8 +383,8 @@ class Recouvrement4(Recouvrement3):
         nb_bloc = 0
         tot = 0
         nb_occ = 0
-        for longueur, dicoOcc in self.blocs_texte.iteritems():
-            for cle_hash, lOcc in dicoOcc.iteritems():
+        for longueur, dicoOcc in list(self.blocs_texte.items()):
+            for cle_hash, lOcc in list(dicoOcc.items()):
                 # item indexé par l'inverse de la longueur pour avoir les blocs
                 # les plus longs au début du heapq
                 item = (1.0/longueur, longueur, cle_hash, lOcc)

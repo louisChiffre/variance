@@ -21,10 +21,10 @@ import os.path
 import sys
 import string
 import logging
-import htmlentitydefs
+import html.entities
 import bisect
 from string import Template
-import utile as ut
+from . import utile as ut
 import numpy as Numeric
 
 
@@ -257,7 +257,7 @@ class BiBlocList(object):
         """Evalue l'alignement"""
         assert c1+c2+c3 == 1
         #sep = """ !\r,\n:\t;-?"'`’()"""
-        sep = u""" !\r,\n:\t;-?"'`\u2019()"""
+        sep = """ !\r,\n:\t;-?"'`\\u2019()"""
         seq1 = self.lgSource
         seq2 = len(self.texte) - seq1
         #assert len(self.liste)==1754

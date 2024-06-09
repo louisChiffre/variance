@@ -9,7 +9,7 @@ import textwrap as tw
 import itertools as it
 from collections import namedtuple, defaultdict
 from os.path import dirname, basename, splitext, join
-from ansi import Fore, Style
+from .ansi import Fore, Style
 
 
 # from constantesDonnees
@@ -25,42 +25,42 @@ B_OEUVRE = 'oeuvre'
 B_TITRE = 'titre'
 B_EDITION = 'edition'
 B_PUBLICATION = 'publication'
-B_INFORMATIONS = u'informations'
-B_VERS_SOURCE = u'vsource'
+B_INFORMATIONS = 'informations'
+B_VERS_SOURCE = 'vsource'
 B_ETAT_SOURCE = 'fsource'
-B_VERS_CIBLE = u'vcible'
-B_ETAT_CIBLE = u'fcible'
-B_PARAM_1 = u'lg_pivot'
-B_PARAM_2 = u'ratio'
-B_PARAM_3 = u'seuil'
-B_PARAM_4 = u'car_mot'
-B_PARAM_5 = u'caseSensitive'
-B_PARAM_6 = u'sepSensitive'
-B_PARAM_7 = u'diacriSensitive'
-B_TRANSFORMATIONS = u'transformations'
-B_LGSOURCE = u'lgsource'
-B_INSERTIONS = u'insertions'
-B_SUPPRESSIONS = u'suppressions'
-B_DEPLACEMENTS = u'deplacements'
-B_REMPLACEMENTS = u'remplacements'
-B_BLOCSCOMMUNS = u'blocscommuns'
-B_BLOCSDEPLACES = u'blocsdeplaces'
-B_NONDEF = u'blocsNonDefinis'
-B_LG = u'lg'
-B_INS = u'ins'
-B_SUP = u'sup'
-B_DEP = u'dep'
-B_REMP = u'remp'
-B_BC = u'bc'
-B_ND = u'nd'
-B_MOT = u'mot'
-B_DEB = u'd'
-B_FIN = u'f'
-B_DEP = u'bd'
-B1_D = u'b1d'
-B1_F = u'b1f'
-B2_D = u'b2d'
-B2_F = u'b2f'
+B_VERS_CIBLE = 'vcible'
+B_ETAT_CIBLE = 'fcible'
+B_PARAM_1 = 'lg_pivot'
+B_PARAM_2 = 'ratio'
+B_PARAM_3 = 'seuil'
+B_PARAM_4 = 'car_mot'
+B_PARAM_5 = 'caseSensitive'
+B_PARAM_6 = 'sepSensitive'
+B_PARAM_7 = 'diacriSensitive'
+B_TRANSFORMATIONS = 'transformations'
+B_LGSOURCE = 'lgsource'
+B_INSERTIONS = 'insertions'
+B_SUPPRESSIONS = 'suppressions'
+B_DEPLACEMENTS = 'deplacements'
+B_REMPLACEMENTS = 'remplacements'
+B_BLOCSCOMMUNS = 'blocscommuns'
+B_BLOCSDEPLACES = 'blocsdeplaces'
+B_NONDEF = 'blocsNonDefinis'
+B_LG = 'lg'
+B_INS = 'ins'
+B_SUP = 'sup'
+B_DEP = 'dep'
+B_REMP = 'remp'
+B_BC = 'bc'
+B_ND = 'nd'
+B_MOT = 'mot'
+B_DEB = 'd'
+B_FIN = 'f'
+B_DEP = 'bd'
+B1_D = 'b1d'
+B1_F = 'b1f'
+B2_D = 'b2d'
+B2_F = 'b2f'
 #B_REMP = 'remp'
 B_MOT_AVANT = 'motavant'
 B_MOT_APRES = 'motapres'
@@ -187,7 +187,7 @@ def make_informations(appli, source_filename, target_filename, author, title):
 def make_html_output(appli, html_filename):
     table_html_str = appli.bbl._BiBlocList__listeToHtmlTable()
     with io.open(html_filename, 'w', encoding='utf8') as o:
-        html = u'<html><body><table>{table_html_str}</table></body></html>'.format(
+        html = '<html><body><table>{table_html_str}</table></body></html>'.format(
             **locals())
         o.write(html)
 
@@ -274,7 +274,7 @@ def make_javascript_output(appli, base_dir):
             yield Pair(i, fa,fb)
 
     def annotate(frag, id):
-        return u'<span class={frag.type} id="frag_{id}" onclick="scroll_this(this)">{frag.txt}</span>'.format(**locals())
+        return '<span class={frag.type} id="frag_{id}" onclick="scroll_this(this)">{frag.txt}</span>'.format(**locals())
 
     def make_text(field):
         def gen():
@@ -287,18 +287,18 @@ def make_javascript_output(appli, base_dir):
             return txt.replace('\n','<br>')
         def make_block(frag):
             return {
-                'type' : u'fragment',
+                'type' : 'fragment',
                 'data' : {
                     'text': frag
 
                 }
             }
-        blocks =[make_block(k) for k in (u"".join(gen())).split('\n')]
+        blocks =[make_block(k) for k in ("".join(gen())).split('\n')]
         return json.dumps(blocks, ensure_ascii=False)
 
     table = make_table(gen_pairs())
     csv_filename = join(base_dir, 'csv_output.csv') 
-    print('saving to {csv_filename}'.format(**locals()))
+    print(('saving to {csv_filename}'.format(**locals())))
     table.to_csv(csv_filename, encoding='utf-8')
 
     tables = make_tables(gen_pairs())
@@ -317,7 +317,7 @@ def make_javascript_output(appli, base_dir):
             yield '<tbody>'
             for _, row in df.iterrows():
                 yield '  <tr id="frag_{row.id}" onclick="scroll_this(this)">'.format(**locals())
-                for k,v in row.iteritems():
+                for k,v in list(row.items()):
                     if not k =='id':
                         yield '    <td>' + v +'</td>'
                 yield '  </tr>'
@@ -330,7 +330,7 @@ def make_javascript_output(appli, base_dir):
     replacements_txt = make_table_html(tables['Replacement'][['a','b','id']].sort_values('a'))
     deletions_txt = make_table_html(tables['Deletion'][['a','id']])
     insertions_txt = make_table_html(tables['Insertion'][['b','id']])
-    tpl =u'''
+    tpl ='''
 var blocks_1 = {txt1};
 var blocks_2 = {txt2};
 var replacements_txt = {replacements_txt};
@@ -340,17 +340,17 @@ var insertions_txt = {insertions_txt};
     txt = tpl.format(**locals())
     # this is the javascript
     javascript_filename = join(base_dir, 'data.js')
-    print('writing data to {javascript_filename}').format(**locals())
+    print((('writing data to {javascript_filename}').format(**locals())))
     with io.open(javascript_filename, 'w', encoding='utf8') as o:
-        o.write(unicode(txt))
+        o.write(str(txt))
     
     assets_directory = join(dirname(os.path.dirname(__file__)),'assets')
-    print('source assets directory is {assets_directory}').format(**locals())
+    print((('source assets directory is {assets_directory}').format(**locals())))
 
     # copying base template
     template_filename = join(assets_directory ,'template.html')
     html_filename = join(base_dir,'diff_table_improved.html')
-    print('copying {template_filename} to {html_filename}'.format(**locals()))
+    print(('copying {template_filename} to {html_filename}'.format(**locals())))
     shutil.copyfile(template_filename, html_filename)
 
 
@@ -358,7 +358,7 @@ var insertions_txt = {insertions_txt};
     dynamic_assets_directory = join(assets_directory, 'dynamic_assets')
     target_assets_directory = join(base_dir, 'assets')
     assert os.path.exists(dynamic_assets_directory)
-    print('copying {dynamic_assets_directory} to {target_assets_directory}'.format(**locals()))
+    print(('copying {dynamic_assets_directory} to {target_assets_directory}'.format(**locals())))
     if os.path.exists(target_assets_directory):
         shutil.rmtree(target_assets_directory) 
     shutil.copytree(dynamic_assets_directory, target_assets_directory)
@@ -458,7 +458,7 @@ def pretty_print(appli):
     sentence_lookup = make_sentence_lookup(appli.bbl.texte) 
     W=40
     f = functools.partial(block2fragment, appli, sentence_lookup)
-    template = u'{la:<4}|{lcode}{ta:<__W__}{reset}|{rcode}{tb:<__W__}{reset}|{lb:>4}'.replace('__W__', str(W))
+    template = '{la:<4}|{lcode}{ta:<__W__}{reset}|{rcode}{tb:<__W__}{reset}|{lb:>4}'.replace('__W__', str(W))
     for a,b in appli.bbl.liste:
         fa = f(a)
         fb = f(b)
@@ -467,19 +467,19 @@ def pretty_print(appli):
         rcode=type2code.get(fb.type,Fore.YELLOW)
         for la,lb,ta,tb in it.izip_longest(
             [fa.type], [fb.type], tw.wrap(fa.txt, W), tw.wrap(fb.txt, W), fillvalue=' '):
-            print(template.format(
+            print((template.format(
                 lcode=lcode,
                 rcode=rcode,
                 reset=Style.RESET_ALL,
                 la=la,
                 lb=lb,
                 ta=ta,
-                tb=tb))
+                tb=tb)))
             if fa.type=='R':
-                print('context A'.center(80, '*'))
-                print('\r'.join(fa.context))
-                print(''.center(80, '*'))
-                print('context B'.center(80, '*'))
-                print('\r'.join(fb.context))
-                print(''.center(80, '*'))
+                print(('context A'.center(80, '*')))
+                print(('\r'.join(fa.context)))
+                print((''.center(80, '*')))
+                print(('context B'.center(80, '*')))
+                print(('\r'.join(fb.context)))
+                print((''.center(80, '*')))
 
