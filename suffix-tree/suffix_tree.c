@@ -1,6 +1,6 @@
 /* Python suffix tree */
 
-/* Originally developed by Thomas Mailund <mailund@birc.dk> and Søren Besenbacher <besen@birc.dk> */
+/* Originally developed by Thomas Mailund <mailund@birc.dk> and Sï¿½ren Besenbacher <besen@birc.dk> */
 /* Adapted by Dell Zhang <dell.z@ieee.org> to support Unicode text and new verision Python. */
 
 #include <wchar.h>
