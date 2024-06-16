@@ -42,25 +42,25 @@ class DiffTexts(object):
         def s2ord(x):
             return [ord(k) for k in x]
         if not self.parameters.diacri_sensitive:
-            tabin = s2ord("çéèàùâêîôûäëïöüÿÇÉÈÀÙÂÊÎÔÛÄËÏÖÜ")
+            tabin = s2ord("ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½")
             tabout = s2ord("ceeauaeiouaeiouyCEEAUAEIOUAEIOU")
             self.sepTable = dict(list(zip(tabin, tabout)))
             self.texte1 = self.texte1.translate(self.sepTable)
             self.texte2 = self.texte2.translate(self.sepTable)
 
         if not self.parameters.case_sensitive:
-            # si comparaison insensible à la casse,
+            # si comparaison insensible ï¿½ la casse,
             # on convertit les 2 chaines en minuscule
             self.texte1 = self.texte1.lower()
             self.texte2 = self.texte2.lower()
 
-        self.lg_texte1 = len(self.texte1)  # longueur texte antérieur
-        self.lg_texte2 = len(self.texte2)  # longueur texte postérieur
+        self.lg_texte1 = len(self.texte1)  # longueur texte antï¿½rieur
+        self.lg_texte2 = len(self.texte2)  # longueur texte postï¿½rieur
         self.lg_texte = self.lg_texte1 + self.lg_texte2
 
-        # dictionnaire contenant l'ensemble des fragments répétés
-        # ce dictionnaire est indexé par la longueur des fragments
-        # puis par les fragments eux-mêmes. En regard, on trouve les
+        # dictionnaire contenant l'ensemble des fragments rï¿½pï¿½tï¿½s
+        # ce dictionnaire est indexï¿½ par la longueur des fragments
+        # puis par les fragments eux-mï¿½mes. En regard, on trouve les
         # occurrences d'apparition de ces fragments
         self.blocs_texte = {}
 
@@ -77,18 +77,18 @@ class DiffTexts(object):
         self.result = self.calc_result()
 
     def calcPairesBlocsDeplaces(self, blocsDepl):
-        """Construction de paires de blocs déplacés entre le source et le cible.
+        """Construction de paires de blocs dï¿½placï¿½s entre le source et le cible.
 
         On met en correspondance chaque bloc du source et le ou les blocs identiques du cible.
-        On peut avoir un bloc source qui correspond à plusieurs cibles et vice-versa,
-        auquel cas on aura autant de paires 2 à 2 qu'il y a de correspondances.
+        On peut avoir un bloc source qui correspond ï¿½ plusieurs cibles et vice-versa,
+        auquel cas on aura autant de paires 2 ï¿½ 2 qu'il y a de correspondances.
 
-        Si on filtre les déplacements, alors on enlève ceux trop petits en fonction
-        de leur distance. Et on replace ces bocs dans les listes d'insérés ou supprimés.
+        Si on filtre les dï¿½placements, alors on enlï¿½ve ceux trop petits en fonction
+        de leur distance. Et on replace ces bocs dans les listes d'insï¿½rï¿½s ou supprimï¿½s.
         @type blocsDepl: list
-        @param blocsDepl: liste des blocs déplacés
+        @param blocsDepl: liste des blocs dï¿½placï¿½s
         @type filtrageDeplacements: boolean
-        @param filtrageDeplacements: si vrai on filtre les déplacement non intéressants"""
+        @param filtrageDeplacements: si vrai on filtre les dï¿½placement non intï¿½ressants"""
 
         lDepl = []
         i = 0
@@ -106,7 +106,7 @@ class DiffTexts(object):
         for b1, b2 in lDepl:
             longueurBloc = b1[1] - b1[0]
             ajoutBloc = False
-            # on ajoute systématiquement les grands blocs
+            # on ajoute systï¿½matiquement les grands blocs
             if longueurBloc > 15:
                 ajoutBloc = True
             else:
@@ -126,24 +126,24 @@ class DiffTexts(object):
                     ajoutBloc = True
 
             # logging.debug((longueurBloc,b1,b2,self.texte1[b1[0]:b1[1]],self.lg_texte1,self.lg_texte2))
-            # si le déplacement est validé, on va l'afficher
+            # si le dï¿½placement est validï¿½, on va l'afficher
             if ajoutBloc:
                 b1 = (b1[0], b1[1])
                 b2 = (b2[0], b2[1])
                 newLDepl.append((b1, b2))
             else:
                 # sinon, il cela devient une suppression ou une insertion simple
-                # et on l'ajoute à le liste correspondante
+                # et on l'ajoute ï¿½ le liste correspondante
                 self.suppressions = ut.addition_intervalle(
                     self.suppressions, (b1[0], b1[1]))
                 self.insertions = ut.addition_intervalle(
                     self.insertions, (b2[0], b2[1]))
-                try:  # et on le supprime de la liste des déplacements
+                try:  # et on le supprime de la liste des dï¿½placements
                     k = self.occs_deplaces.index(b1)
                     #logging.debug('k='+str(k)+' / len(o_d)='+str(len(self.occs_deplaces)))
                     self.occs_deplaces.pop(k)
                 except ValueError:
-                    # b1 déjà supprimé de la liste, on contiue
+                    # b1 dï¿½jï¿½ supprimï¿½ de la liste, on contiue
                     pass
                 try:  # idem
                     k = self.occs_deplaces.index(b2)
@@ -159,7 +159,7 @@ class DiffTexts(object):
         self.occs_texte2 = []  # occurences des blocs communs du texte 2
 
         logging.log(5, "Debut de l'alignement")
-        deb_al = time.clock()
+        deb_al = time.perf_counter()
 
         aligneur = alignement.AlignAstarRecur(
             l_texte1=self.lg_texte1,
@@ -170,7 +170,7 @@ class DiffTexts(object):
 
         self.occs_deplaces, self.blocsCommuns = aligneur.run(
             self.texte1, self.texte2)
-        logging.log(5, "Fin de l'alignement : %.2f s", time.clock()-deb_al)
+        logging.log(5, "Fin de l'alignement : %.2f s", time.perf_counter()-deb_al)
 
         for x in self.occs_deplaces:
             if x[0] < self.lg_texte1:
@@ -192,7 +192,7 @@ class DiffTexts(object):
 
     def fusionItemsAdjacents(self, liste):
         """Fusionne les items qui se "touchent" dans une liste
-        cad les items dont la fin de l'un est le début de l'autre
+        cad les items dont la fin de l'un est le dï¿½but de l'autre
         """
         i = 0
         # logging.debug((len(liste),liste))
@@ -212,7 +212,7 @@ class DiffTexts(object):
     def calc_result(self):
         """Lance,textesApparies=False, dossierRapport=None, coeff=None
         si texteApparies est vrai, cela signifie que les 2 textes doivent 
-        déjà être alignés ligne à ligne, ainsi, la comparaison se fera par ligne
+        dï¿½jï¿½ ï¿½tre alignï¿½s ligne ï¿½ ligne, ainsi, la comparaison se fera par ligne
         """
 
         self.reconstituer_textes()
@@ -222,7 +222,7 @@ class DiffTexts(object):
                                self.occs_deplaces, self.tous_remplacements,
                                self.lg_texte1, self.texte_original,
                                self.blocsCommuns, self.lDepl)
-        logging.debug('Création BiBlocListWD')
+        logging.debug('Crï¿½ation BiBlocListWD')
         bbl = synthetic.BiBlocListWD(resultat, self.parameters)
         logging.debug('BiBlocListWD.toResultat()')
         res = bbl.toResultat()

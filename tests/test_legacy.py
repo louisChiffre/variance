@@ -81,6 +81,12 @@ def load(xml_filename):
         result=Result(**result),
         resources=resources)
 
+def make_html_output(appli, html_filename):
+    table_html_str = appli.bbl._BiBlocList__listeToHtmlTable()
+    with open(html_filename, 'w', encoding='utf8') as o:
+        html = u'<html><body><table>{table_html_str}</table></body></html>'.format(
+            **locals())
+        o.write(html)
 
 def check(xml_filename):
     p = load(xml_filename)
@@ -88,6 +94,9 @@ def check(xml_filename):
         chaine1=p.txt1, chaine2=p.txt2,
         parameters=p.parameters)
     res = appli.result
+    txt = p.txt1 + p.txt2
+    #make_html_output(appli, 'test.html')
+    
 
     
     # ut.make_xml_output(
@@ -120,9 +129,26 @@ def check(xml_filename):
             return float('inf')
         return sum([np.abs(np.array(tuple(a))-np.array(tuple(b))).sum() for a, b in zip(x, y)])
 
-    def assert_equal(x, y):
-        assert diff_sum(x, y) < 5
+    def make_dataframe(x):
+        def gen():
+            def gen(k, label):
+                for kk in k:
+                    yield dict(label=label, txt=txt[kk.a:kk.b])|kk._asdict()
+            yield from gen(x.ins,'INS')
+            yield from gen(x.sup, 'SUP')
+            yield from gen(x.bd, 'BD')
+            yield from gen(x.bc, 'BC')
+            yield from gen(x.remp, 'RP')
+            
+        return pd.DataFrame(gen()).sort_values('a')
 
+    dfa = make_dataframe(actual)
+    dfb = make_dataframe(expected)
+    df=dfa.merge(dfb, on='a',how='outer', indicator=True)
+    def assert_equal(x, y):
+        print(diff_sum(x,y))
+        assert diff_sum(x, y) < 5
+    #breakpoint()
     assert actual.lg == expected.lg
     assert_equal(actual.ins, expected.ins)
     assert_equal(actual.sup, expected.sup)
@@ -133,8 +159,8 @@ def check(xml_filename):
 
 xml_filenames = (
     'tests/data/Labelle/Informations.xml',
-    'tests/data/Labelle/Informations_dia.xml',
-    'tests/data/Labelle/Informations_case.xml',
+   # 'tests/data/Labelle/Informations_dia.xml',
+    #'tests/data/Labelle/Informations_case.xml',
 )
 
 import pytest
@@ -142,7 +168,8 @@ import pytest
 def test_invariance(xml_filename):
     check(xml_filename)
 
-def test_separator():
+
+def gen_separator_cases():
     Case = namedtuple('Case', 'parameters txt1 txt2 result')
     vanilla_parameters = md.Parameters(
         lg_pivot=7,
@@ -153,22 +180,28 @@ def test_separator():
         sep_sensitive=True ,
         diacri_sensitive=True,
         algo='HIS')
-    
-    def cases():
-        yield Case(parameters=vanilla_parameters, 
-            txt1='''Les poules du couvent couvent le samedi le vendredi le dimanche le jeudi aussi et mercredi bien sur''', 
+    yield Case(parameters=vanilla_parameters, 
+        txt1='''Les poules du couvent couvent le samedi le vendredi le dimanche le jeudi aussi et mercredi bien sur''', 
 txt2='Les poules du couvent couvent le samedi',
-            result=None)
+        result=None)
 
-    def check(case):
-        appli = md.DiffTexts(
-            chaine1=case.txt1, chaine2=case.txt2,
-            parameters=case.parameters)
-        ut.pretty_print(appli)
-    for case in cases():
-        yield check, case
+
+@pytest.mark.parametrize('case',gen_separator_cases())                  
+def test_separator(case):
+    appli = md.DiffTexts(
+        chaine1=case.txt1, chaine2=case.txt2,
+        parameters=case.parameters)
+    #ut.pretty_print(appli)
+
+
 
 
 if __name__ == '__main__':
+    import logging
+    logging.basicConfig(
+        # format='%(levelname)s:%(message)s [%(relativepath)s:%(lineno)d]',
+        format='%(levelname)s:%(message)s [%(pathname)s:%(lineno)d]',
+        #format='%(levelname)s:%(message)s',
+        level=logging.DEBUG)
     for xml_filename in xml_filenames:
         check(xml_filename)

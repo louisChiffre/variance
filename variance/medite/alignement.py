@@ -49,7 +49,7 @@ class Align(object):
         # self.tekte = texte # texte original
 
     def repetition(self, liste_occ, l_texte1):
-        """ Détermine s'il y a une occurrence inférieure et une occurrence supérieure éà la frontière
+        """ Dï¿½termine s'il y a une occurrence infï¿½rieure et une occurrence supï¿½rieure ï¿½ï¿½ la frontiï¿½re
 
         pre: 0<=l_tekte1<=self.l_texte1
         """
@@ -70,33 +70,33 @@ class AlignAstarRecur(Align):
 
         @param texte1: la premiere version du texte a comparer
         @type texte1: String
-        @param long_min_pivots: longueur minimale des chaines répétées
+        @param long_min_pivots: longueur minimale des chaines rï¿½pï¿½tï¿½es
         @param long_min_pivots: integer
-        @param algoAlign: algo d'alignement, par défaut A*
+        @param algoAlign: algo d'alignement, par dï¿½faut A*
         @type algoAlign: string
-        @param sep: sensible aux séparateurs si Vrai
+        @param sep: sensible aux sï¿½parateurs si Vrai
         @type sep: boolean
          """
         Align.__init__(self)  # ,texte)
         self.long_min_pivots = long_min_pivots
         self.l_texte1 = l_texte1
         self.algoAligneur = algoAlign  # algo d'alignement
-        self.separatorSensivitive = sep  # sensible aux séparateurs
+        self.separatorSensivitive = sep  # sensible aux sï¿½parateurs
         self.carOuMot = carOuMot
 
     def run(self, t1, t2):
         """ pre: isinstance(t1,str) and isinstance(t2,str)
         """
-        # niveau max d'appel récursif
+        # niveau max d'appel rï¿½cursif
         self.MAXRECURSION = 1000
         self.l_texte2 = len(t2)
         # application de psyco  ?
         #self.preTraitDiffSym = co.proxy(self.preTraitDiffSym)
-        # ajoute-t-on les déplacements récursifs ?
-        # par défaut non car on perd l'assertion de non-chevauchement des déplacements
+        # ajoute-t-on les dï¿½placements rï¿½cursifs ?
+        # par dï¿½faut non car on perd l'assertion de non-chevauchement des dï¿½placements
         self.addSubDep = True
-        # on enlève les $ car le suffix_tree ne les supporte pas
-        sepTable = string.maketrans("$", ".")
+        # on enlï¿½ve les $ car le suffix_tree ne les supporte pas
+        sepTable = str.maketrans("$", ".")
         #t1 = t1.translate(sepTable)
         #t2 = t2.translate(sepTable)
         lDEP1, lDEP2, lBC1, lBC2 = self.deplacements_pond2(t1, t2)
@@ -108,13 +108,13 @@ class AlignAstarRecur(Align):
         return LDEP, lBC1  # +lBC2#,LUnique
 
     def cleanDep(self, LDEP, texte1, texte2):
-        """Enleve les deplacements inclus dans un autre deplacement et ceux qui ne sont plus répétés 
+        """Enleve les deplacements inclus dans un autre deplacement et ceux qui ne sont plus rï¿½pï¿½tï¿½s 
 
         #pre: forall([len(texte) >= LDEP[i][0] >= LDEP[i-1][1] >= 0 for i in range(1, len(LDEP))])
         #post: forall([len(texte1)+len(texte2) >=__return__[i][0] >= __return__[i-1][1] >= 0 for i in range(1, len(__return__))])
         """
         size_LDEP = len(LDEP)+1
-        while len(LDEP) < size_LDEP:  # boucle jusqu'à un point fixe
+        while len(LDEP) < size_LDEP:  # boucle jusqu'ï¿½ un point fixe
             size_LDEP = len(LDEP)
             #print size_LDEP,len(LDEP)
             LDEP = self.removeInclude(LDEP)
@@ -128,7 +128,7 @@ class AlignAstarRecur(Align):
         return LDEP
 
     def removeInclude(self, L):
-        """ Enleve les deplacements inclus dans un autre déplacement 
+        """ Enleve les deplacements inclus dans un autre dï¿½placement 
 
         #pre: forall([len(texte) >= L[i][0] >= L[i-1][1] >= 0 for i in range(1, len(L))])
         #post: forall([len(texte) >=__return__[i][0] >= __return__[i-1][1] >= 0 for i in range(1, len(__return__))])
@@ -182,8 +182,8 @@ class AlignAstarRecur(Align):
         return LDep  # ,LUnique
 
     def compute_alignement(self, t1, t2):
-        """ prends les 2 textes en entrée et renvoie 2 listes au format
-        [(BC,[BDeps le précédant])]  """
+        """ prends les 2 textes en entrï¿½e et renvoie 2 listes au format
+        [(BC,[BDeps le prï¿½cï¿½dant])]  """
         aligneSMEMS = True
         if aligneSMEMS:
             s1, s2 = self._texteToSeqHomo(t1, t2)
@@ -341,7 +341,7 @@ class AlignAstarRecur(Align):
         return liste2
 
     def __filtreDepRec(self, liste):
-        """filtrage des déplacements se chevauchant"""
+        """filtrage des dï¿½placements se chevauchant"""
         liste2 = []
         if len(liste) < 2:
             liste2.extend(liste)
@@ -367,7 +367,7 @@ class AlignAstarRecur(Align):
         return liste2
 
     def _texteToSeqHomo(self, t1, t2):
-        """ Extrait des 2 textes, les 2 séquences de blocs répétés """
+        """ Extrait des 2 textes, les 2 sï¿½quences de blocs rï¿½pï¿½tï¿½s """
         logging.log(5, "debut _texteToSeqHomo")
         st = suffix_tree.GeneralisedSuffixTree([t1, t2])
         logging.log(5, "fin construction ST")

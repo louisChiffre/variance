@@ -37,7 +37,7 @@ def children(node):
     child = node.firstChild
     while child:
         yield child
-        child = child.__next__
+        child = child.next
 
 
 class SuffixTreeInterface(object):
@@ -146,8 +146,8 @@ sequences.'''
         # de la fin de la r�p�tition la plus longue commen�ant � cette position
         #print self.root.__str__(self.concat_string, short=True)
         longueur_seq1 = len(self.sequences[0])
-        seq_repeat_deb = Numeric.zeros(len(self.concat_string), Numeric.int)
-        seq_repeat_fin = Numeric.zeros(len(self.concat_string), Numeric.int)
+        seq_repeat_deb = Numeric.zeros(len(self.concat_string), int)
+        seq_repeat_fin = Numeric.zeros(len(self.concat_string), int)
         for i in range(len(self.concat_string)):
             seq_repeat_deb[i] = i
             seq_repeat_fin[i] = i
@@ -224,6 +224,8 @@ sequences.'''
                                 #seq_repeat[pi] = pi+longueur_chaine
                     # else: print n.path_indices
         #print seq_repeat
+        # for a,b in zip(seq_repeat_deb,seq_repeat_fin):
+        #     logging.debug('%s,%s' %(a,b))
         return seq_repeat_deb, seq_repeat_fin
 
 
@@ -276,6 +278,9 @@ class GeneralisedSuffixTree(object):
                 else:
                     pos_debut = debut
                 t = hash(texte[pos_debut:pos_debut+longueur])
+                # logging.debug(longueur)
+                # logging.debug(texte[pos_debut:pos_debut+longueur])
+
                 if longueur not in dic_MEM:
                     dic_MEM[longueur] = {}
                 try:
@@ -283,9 +288,10 @@ class GeneralisedSuffixTree(object):
                 except KeyError:
                     dic_MEM[longueur][t] = [pos_debut]
             pos = debut-1
+        
         #logging.debug( dic_MEM)
-        # for longueur,dic_cle in dic_MEM.iteritems():
-        #    for cle,lOcc in dic_cle.iteritems():
+        # for longueur,dic_cle in dic_MEM.items():
+        #    for cle,lOcc in dic_cle.items():
         #        logging.debug(str(longueur)+' / '+texte[lOcc[0]:lOcc[0]+longueur]+'/ '+str(lOcc))
         return dic_MEM
 
@@ -312,13 +318,21 @@ class GeneralisedSuffixTree(object):
             for cle_hash, lOcc in list(dicoOcc.items()):
                 # for occ in lOcc:
                 #    logging.debug(texte[occ:occ+longueur])
-                logging.debug(texte[lOcc[0]:lOcc[0]+longueur])
+                #logging.debug(texte[lOcc[0]:lOcc[0]+longueur])
+                pass
         #print '===='
         if eliminRecouv:
             a = time.time()
             recouv = recouvrement.Recouvrement4(
                 self.sequences[0]+self.sequences[1], seq, len(self.sequences[0]), min_size)
             blocs = recouv.eliminer_recouvrements()
+
+            for key,value in sorted(blocs.items(), key=lambda x: (x[0][1],x[1][0])):
+                #breakpoint()
+                logging.info('%s:%s>' %(key[1],value))
+                
+
+            
             b = time.time()
         else:
             blocs = {}
@@ -343,9 +357,13 @@ class GeneralisedSuffixTree(object):
         # sep = u""". !\r,\n:\t;-?"'`�()�""" #liste des s�parateurs
         # �
         sep = """. !\r,\n:\t;-?"'`\\u2019()�"""  # liste des s�parateurs
+        sep = """. !\r,\n:\t;-?"'`\u2019()�"""
         # if len(self.sequences[1])==20951:
         #    assert len([k for k in self.sequences[1] if k in sep]) == 4725
         # on ne garde que les chaine de taille > min et r�p�t�es
+        logging.info('# separator in text: %s'% len([k for k in texte if k in sep]))
+        
+
         for (cle, longueur), liste_pos in list(blocs.items()):
             if (longueur >= min_size and len(liste_pos) >= 2):
                 # on inverse car les pos ont �t� ajout�es dans l'ordre d�croissant dans get_MEM
@@ -407,8 +425,10 @@ class GeneralisedSuffixTree(object):
         logging.log(10, 'len(blocs)='+str(len(blocs))+' / len(dic_chaine2)='+str(len(dic_chaine2))
                     + ' / taille chaines dic_chaine2='+str(sum([longueur*len(li) for (c, longueur), li in list(dic_chaine2.items())])))
         texte = self.sequences[0] + self.sequences[1]
-        for (cle, longueur), lOcc in list(dic_chaine2.items()):
+        for (cle, longueur), lOcc in sorted(dic_chaine2.items(), key=lambda x: x[1]):
             logging.debug(texte[lOcc[0]:lOcc[0]+longueur])
         # if len(self.sequences[1])==20951:
+        # breakpoint()
         #    assert sum([sum(k) for k in dic_chaine2.values()]) == 21135295
+        # breakpoint()
         return dic_chaine2

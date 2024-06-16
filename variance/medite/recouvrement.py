@@ -26,7 +26,7 @@ from . import utile
 
 
 class Recouvrement(object):
-    """ Classe gérant et résolvant les recouvrements """
+    """ Classe gï¿½rant et rï¿½solvant les recouvrements """
 
     def __init__(self, texte, blocs_texte, lg_texte1, min_size=1):
         self.texte = texte
@@ -36,7 +36,7 @@ class Recouvrement(object):
         self.min_size = min_size
 
     def resoudre_recouvrement(self, I):
-        """ part d'un intervalle qui correspond à un recouvrement
+        """ part d'un intervalle qui correspond ï¿½ un recouvrement
          et trouve une cesure judicieuse (par exemple un blanc)
          On coupera sur cette cesure
          I: [occ_debut, occ_fin, chaine_anterieure, chaine_posterieure] 
@@ -44,6 +44,7 @@ class Recouvrement(object):
          Attention !! pb dans BBL.extractDeplacements(), ne respecte plus l'assertion
          d'ordre si on utilise cette fonction"""
         sep = " .-,!?:;\r\n\t"
+        #breakpoint()
         tailleChAnt = I[2][1]-I[2][0]
         tailleChPost = I[3][1]-I[3][0]
         res = I[0]
@@ -51,7 +52,7 @@ class Recouvrement(object):
         #print 'ant:'+self.texte[I[2][0]:I[2][1]]+':'+str(I[2])
         #print 'post:'+self.texte[I[3][0]:I[3][1]]+':'+str(I[3])
         if tailleChAnt < tailleChPost:
-            # si la chaine antérieure est + petite, on privilégie une coupure dans cettte chaine
+            # si la chaine antï¿½rieure est + petite, on privilï¿½gie une coupure dans cettte chaine
             if (I[0] == 0 or I[0] == self.lg_texte1 or self.texte[I[0]-1] in sep):
                 res = I[0]
                 match = True
@@ -96,12 +97,13 @@ class Recouvrement(object):
         elif res > self.lg_texte1 + self.lg_texte2:
             res = self.lg_texte1 + self.lg_texte2
         assert 0 <= res <= self.lg_texte1 + self.lg_texte2
+        #breakpoint()
         return res
 
 
 class Recouvrement3(Recouvrement):
-    """ Renvoie un dico indexé par un tuplet (cle,longueur) 
-    plutot que par chaine[debut:fin], ce qui évite de stocker les chaines
+    """ Renvoie un dico indexï¿½ par un tuplet (cle,longueur) 
+    plutot que par chaine[debut:fin], ce qui ï¿½vite de stocker les chaines
     dans le dico """
 
     def add_bloc(self, debut, fin):
@@ -123,8 +125,9 @@ class Recouvrement4(Recouvrement3):
         #self.seq_repeat = [] ;
         self.dicoOccLiee = {}
         longueur_totale = self.lg_texte1+self.lg_texte2+1
-        self.seq_repeat_deb = Numeric.zeros(longueur_totale, Numeric.int)
-        self.seq_repeat_fin = Numeric.zeros(longueur_totale, Numeric.int)
+        logging.info('longueure total %s'%longueur_totale)
+        self.seq_repeat_deb = Numeric.zeros(longueur_totale, int)
+        self.seq_repeat_fin = Numeric.zeros(longueur_totale, int)
         for i in range(longueur_totale):
             # self.seq_repeat.append((i,i))
             self.seq_repeat_deb[i] = i
@@ -137,8 +140,8 @@ class Recouvrement4(Recouvrement3):
             # logging.debug(len(self.hqOccBloc))
             (index, longueur, cle_hash, lOcc) = heapq.heappop(
                 self.hqOccBloc)  # bloc le + long
+            #logging.debug(str((index,longueur,lOcc))+' / bloc: '+self.texte[lOcc[0]:lOcc[0]+longueur])
             # logging.debug(len(self.hqOccBloc))
-            ###logging.debug(str((index,longueur,cle_hash,lOcc))+' / bloc: '+self.texte[lOcc[0]:lOcc[0]+longueur])
             # if longueur >= self.min_size:
             if len(lOcc) > 1:
                 #logging.debug('ajoutOccurences: '+self.texte[lOcc[0]:lOcc[0]+longueur]+' / '+str(longueur)+' / '+str(lOcc))
@@ -166,24 +169,24 @@ class Recouvrement4(Recouvrement3):
                 pos += 1
             #pos = debut - 1
 
-        # logging.debug('=========================')
-        # logging.debug('fin recouv self.totalAjout=%d / self.totalRogneG=%d / self.totalRogneD=%d / self.nb_reinclusion=%d / len(self.res)=%d',
-        #                self.totalAjout,self.totalRogneG,self.totalRogneD,self.nb_reinclusion,len(self.res))
+        logging.debug('=========================')
+        logging.debug('fin recouv self.totalAjout=%d / self.totalRogneG=%d / self.totalRogneD=%d / self.nb_reinclusion=%d / len(self.res)=%d',
+                       self.totalAjout,self.totalRogneG,self.totalRogneD,self.nb_reinclusion,len(self.res))
         #logging.debug('self.res = '+str(self.res))
         for cle, lOcc in list(self.res.items()):
-            lOcc.reverse()  # on reverse car dans la suite dans l'algo c'est nécessaire
+            lOcc.reverse()  # on reverse car dans la suite dans l'algo c'est nï¿½cessaire
 
         return self.res
 
     def ajoutOccurences(self, longueur, lOcc):
-        """ Ajoute la liste des occurrences lOcc à self.seq_repeat """
+        """ Ajoute la liste des occurrences lOcc ï¿½ self.seq_repeat """
         lNonOverlap, lOverlap = self.checkOverlap(longueur, lOcc)
         if len(lNonOverlap) == 1:
             # bloc non chevauchant unique, on l'ajoute aux blocs chevauchants
-            # car il peut y en avoir plusieurs qui ont été césurés
+            # car il peut y en avoir plusieurs qui ont ï¿½tï¿½ cï¿½surï¿½s
             bisect.insort_right(lOverlap, lNonOverlap[0])
         elif len(lNonOverlap) > 1:
-            # si plusieurs non chevauchants, on les ajoute à self.seq_repeat
+            # si plusieurs non chevauchants, on les ajoute ï¿½ self.seq_repeat
             cle = hash(self.texte[lNonOverlap[0][1]:lNonOverlap[0][2]])
             longueur2 = lNonOverlap[0][2] - lNonOverlap[0][1]
             locc = [item[1] for item in lNonOverlap]
@@ -201,20 +204,20 @@ class Recouvrement4(Recouvrement3):
                 assert item_min[0] <= item[0]    # le + petit
             max_decalageG = max_decalageD = 0
             for item in lOverlap:
-                # on cherche les + grands décalages G et D qui vont être
-                # utilisés pour césurer l'ensemble des blocs chevauchants
+                # on cherche les + grands dï¿½calages G et D qui vont ï¿½tre
+                # utilisï¿½s pour cï¿½surer l'ensemble des blocs chevauchants
                 max_decalageG = max(max_decalageG, item[3])
                 max_decalageD = max(max_decalageD, item[4])
             for item in lOverlap:
-                # construction des nouvelles occurences des blocs, on enlève item[3]
-                # qui est césure éventuellement déjà attachée à un bloc
+                # construction des nouvelles occurences des blocs, on enlï¿½ve item[3]
+                # qui est cï¿½sure ï¿½ventuellement dï¿½jï¿½ attachï¿½e ï¿½ un bloc
                 lOcc.append(item[1]-item[3]+max_decalageG)
             # calcul de la nouvelle longueur des blocs
             nouveau_debut_item_min = item_min[1]-item_min[3]+max_decalageG
             nouveau_fin_item_min = item_min[2]-item_min[4]+max_decalageD
             longueur2 = nouveau_fin_item_min - nouveau_debut_item_min
             if longueur2 > 0:
-                # restockage du bloc dans la file de priotrité
+                # restockage du bloc dans la file de priotritï¿½
                 cle_hash = hash(
                     self.texte[nouveau_debut_item_min:nouveau_fin_item_min])
                 item = (1.0/longueur2, longueur2, cle_hash, lOcc)
@@ -223,43 +226,43 @@ class Recouvrement4(Recouvrement3):
                 heapq.heappush(self.hqOccBloc, item)
 
     def addOccSeq(self, lNonOverlap):
-        """Ajout effectif des occurrences d'un bloc à self.seq_repeat """
+        """Ajout effectif des occurrences d'un bloc ï¿½ self.seq_repeat """
         #logging.debug('addOccSeq: lNonOverlap='+str(lNonOverlap))
         cle_dic = hash(self.texte[lNonOverlap[0][1]:lNonOverlap[0][2]])  # cle du bloc
         longeur_dic = lNonOverlap[0][0]  # longueur du bloc
         for longueur, debut, fin, decalageG, decalageD in lNonOverlap:  # parcours des occurrences du bloc
             #logging.debug('ajout: '+self.texte[debut:debut+longueur])
             self.totalAjout += longueur
-            # si chevauchement à gauche
-            # debut_prec,fin_prec = self.seq_repeat[debut] # bloc existant à gauche de l'occ à insérer
+            # si chevauchement ï¿½ gauche
+            # debut_prec,fin_prec = self.seq_repeat[debut] # bloc existant ï¿½ gauche de l'occ ï¿½ insï¿½rer
             debut_prec = self.seq_repeat_deb[debut]
             fin_prec = self.seq_repeat_fin[debut]
             if debut < fin_prec:  # debut_prec < fin_prec and
                 #logging.debug('addOccSeq: cesureG / '+str((debut_prec,fin_prec)))
-                pos_cesure = debut - debut_prec  # position de la césure dans le bloc
-                longueur_prec = fin_prec - debut_prec  # longueur bloc précédent
-                # clé bloc précédent
+                pos_cesure = debut - debut_prec  # position de la cï¿½sure dans le bloc
+                longueur_prec = fin_prec - debut_prec  # longueur bloc prï¿½cï¿½dent
+                # clï¿½ bloc prï¿½cï¿½dent
                 cle_prec = hash(self.texte[debut_prec:fin_prec])
                 if (cle_prec, longueur_prec) in self.dicoOccLiee:
-                    # liste des occ du bloc précédent
+                    # liste des occ du bloc prï¿½cï¿½dent
                     locc_prec = list(
                         self.dicoOccLiee[(cle_prec, longueur_prec)])
                 else:
                     # si il n'y en a pas alors au moins debut_prec
                     locc_prec = [debut_prec]
-                for debut_occ_prec in locc_prec:  # pour chaque occ du bloc précédent, on va le césurer
-                    # chaque caractère du bloc est modifié dans self.seq_repeat
+                for debut_occ_prec in locc_prec:  # pour chaque occ du bloc prï¿½cï¿½dent, on va le cï¿½surer
+                    # chaque caractï¿½re du bloc est modifiï¿½ dans self.seq_repeat
                     for i in range(debut_occ_prec, debut_occ_prec+longueur_prec):
                         if i < debut_occ_prec+pos_cesure:
                             #self.seq_repeat[i] = (debut_occ_prec,debut_occ_prec+pos_cesure)
                             self.seq_repeat_deb[i] = debut_occ_prec
                             self.seq_repeat_fin[i] = debut_occ_prec+pos_cesure
                         else:
-                            # self.seq_repeat[i] = (i,i) # partie césurée qui va être remodifiée par le nouveau bloc
+                            # self.seq_repeat[i] = (i,i) # partie cï¿½surï¿½e qui va ï¿½tre remodifiï¿½e par le nouveau bloc
                             self.seq_repeat_deb[i] = i
                             self.seq_repeat_fin[i] = i
                     self.totalRogneG += 1
-                # suppression de l'ancienne chaine du bloc dans le dico et ajout du nouveau bloc précédent césuré
+                # suppression de l'ancienne chaine du bloc dans le dico et ajout du nouveau bloc prï¿½cï¿½dent cï¿½surï¿½
                 if (cle_prec, longueur_prec) in self.dicoOccLiee:
                     del self.dicoOccLiee[(cle_prec, longueur_prec)]
                 try:
@@ -268,13 +271,13 @@ class Recouvrement4(Recouvrement3):
                 except KeyError:
                     self.dicoOccLiee[hash(
                         self.texte[locc_prec[0]:locc_prec[0]+pos_cesure]), pos_cesure] = locc_prec
-            # chevauchement à droite
+            # chevauchement ï¿½ droite
             # debut_suiv,fin_suiv = self.seq_repeat[fin] # bloc suivant
             debut_suiv = self.seq_repeat_deb[fin]
             fin_suiv = self.seq_repeat_fin[fin]
             if debut_suiv < fin:
                 #logging.debug('addOccSeq: cesureG / '+str((debut_suiv,fin_suiv)))
-                pos_cesure = fin - debut_suiv  # position de la césure dans le bloc suivant
+                pos_cesure = fin - debut_suiv  # position de la cï¿½sure dans le bloc suivant
                 longueur_suiv = fin_suiv - debut_suiv  # longueur du bloc suivant
                 # cle du bloc suivant
                 cle_suiv = hash(self.texte[debut_suiv:fin_suiv])
@@ -284,25 +287,25 @@ class Recouvrement4(Recouvrement3):
                         self.dicoOccLiee[(cle_suiv, longueur_suiv)])
                 else:
                     locc_suiv = [debut_suiv]  # au minimum debut_suiv
-                # nouvelle longueur du bloc après césure
+                # nouvelle longueur du bloc aprï¿½s cï¿½sure
                 nouv_longueur_suiv = longueur_suiv - pos_cesure
-                nouv_locc_suiv = []  # nouvelle liste des occurrences du bloc suivant après césure
+                nouv_locc_suiv = []  # nouvelle liste des occurrences du bloc suivant aprï¿½s cï¿½sure
                 for debut_occ_suiv in locc_suiv:  # pour chaque occurrence du bloc suivant
-                    # chaque caractère du bloc suivant à césurer
+                    # chaque caractï¿½re du bloc suivant ï¿½ cï¿½surer
                     for i in range(debut_occ_suiv, debut_occ_suiv+longueur_suiv):
                         if i < debut_occ_suiv+pos_cesure:
-                            # self.seq_repeat[i] = (i,i) # partie à césurer
+                            # self.seq_repeat[i] = (i,i) # partie ï¿½ cï¿½surer
                             self.seq_repeat_deb[i] = i
                             self.seq_repeat_fin[i] = i
                         else:
-                            # self.seq_repeat[i] = (debut_occ_suiv+pos_cesure,debut_occ_suiv+longueur_suiv) # partie conservée
+                            # self.seq_repeat[i] = (debut_occ_suiv+pos_cesure,debut_occ_suiv+longueur_suiv) # partie conservï¿½e
                             self.seq_repeat_deb[i] = debut_occ_suiv+pos_cesure
                             self.seq_repeat_fin[i] = debut_occ_suiv + \
                                 longueur_suiv
-                    # stockage du nouveau début du bloc suivant
+                    # stockage du nouveau dï¿½but du bloc suivant
                     nouv_locc_suiv.append(debut_occ_suiv+pos_cesure)
                     self.totalRogneD += 1
-                # suppression de l'ancienne chaine du bloc dans le dico et ajout du nouveau bloc suivant césuré
+                # suppression de l'ancienne chaine du bloc dans le dico et ajout du nouveau bloc suivant cï¿½surï¿½
                 if (cle_suiv, longueur_suiv) in self.dicoOccLiee:
                     del self.dicoOccLiee[(cle_suiv, longueur_suiv)]
                 try:
@@ -311,7 +314,7 @@ class Recouvrement4(Recouvrement3):
                 except KeyError:
                     self.dicoOccLiee[hash(self.texte[nouv_locc_suiv[0]:nouv_locc_suiv[0] +
                                                      nouv_longueur_suiv]), nouv_longueur_suiv] = nouv_locc_suiv
-            # ajout effectif du bloc après le travail de mise à jour des blocs chevauchants
+            # ajout effectif du bloc aprï¿½s le travail de mise ï¿½ jour des blocs chevauchants
             #if debut < fin_prec: assert self.seq_repeat[debut] == (debut,debut), self.seq_repeat[debut-5:debut+5]
             #if debut_suiv < fin: assert self.seq_repeat[fin] == (fin,fin), self.seq_repeat[fin-5:fin+5]
             for i in range(debut, fin):
@@ -321,10 +324,10 @@ class Recouvrement4(Recouvrement3):
 
     def checkOverlap(self, longueur, lOcc):
         '''Recherche des chevauchements gauche et droits d'une liste d'occurrences d'un bloc.
-        Les césures potentielles sont recherchées et stockées avec les blocs associés.
+        Les cï¿½sures potentielles sont recherchï¿½es et stockï¿½es avec les blocs associï¿½s.
         lNonOverlap est une liste d'occurrences sans chevauchement et lOverlap avec.
-        lOverlap est ordonée de façon croissante sur la longueur des blocs césurés.
-        les overlap G et D sont résolus ensemble'''
+        lOverlap est ordonï¿½e de faï¿½on croissante sur la longueur des blocs cï¿½surï¿½s.
+        les overlap G et D sont rï¿½solus ensemble'''
         # logging.debug(str(longueur)+'/'+str(lOcc))
         lNonOverlap = []
         lOverlap = []
@@ -333,10 +336,10 @@ class Recouvrement4(Recouvrement3):
             debut = occ
             fin = occ+longueur
             try:
-                # d1,f1 = self.seq_repeat[debut] # bloc existant au début du bloc à insérer
+                # d1,f1 = self.seq_repeat[debut] # bloc existant au dï¿½but du bloc ï¿½ insï¿½rer
                 d1 = self.seq_repeat_deb[debut]
                 f1 = self.seq_repeat_fin[debut]
-                # d2,f2 = self.seq_repeat[fin] # bloc existant à la fin du bloc à insérer
+                # d2,f2 = self.seq_repeat[fin] # bloc existant ï¿½ la fin du bloc ï¿½ insï¿½rer
                 d2 = self.seq_repeat_deb[fin]
                 f2 = self.seq_repeat_fin[fin]
             except IndexError:  # sale
@@ -349,7 +352,7 @@ class Recouvrement4(Recouvrement3):
             else:
                 overlapG = d1 <= debut < f1 <= fin  # chevauchement gauche ?
                 overlapD = debut <= d2 < fin <= f2  # chevauchement droit ?
-                # recherche des points de césure
+                # recherche des points de cï¿½sure
                 if overlapG:
                     cesureG = self.resoudre_recouvrement(
                         [debut, f1, [d1, f1], [debut, fin]])
@@ -361,10 +364,10 @@ class Recouvrement4(Recouvrement3):
                 else:
                     cesureD = fin
                 #logging.debug('checkOverlap: cesureG = '+str(cesureG)+' / cesureD = '+str(cesureD))
-                # calcul des décalages
+                # calcul des dï¿½calages
                 decalageG = cesureG - debut
                 decalageD = fin - cesureD
-                # ajout des blocs avec infos de césure dans les listes résultat
+                # ajout des blocs avec infos de cï¿½sure dans les listes rï¿½sultat
                 if (not overlapG and not overlapD) or (decalageG == decalageD == 0):
                     assert cesureG == debut and cesureD == fin
                     lNonOverlap.append((longueur, debut, debut+longueur, 0, 0))
@@ -376,17 +379,24 @@ class Recouvrement4(Recouvrement3):
         return lNonOverlap, lOverlap
 
     def transformHeapQueue(self):
-        """ Transforme self.blocs_texte en une file de priorité indexé par la taille des blocs:
-            les blocs les + grands sont prioritaires. Un bloc est constitué de son index,
+        """ Transforme self.blocs_texte en une file de prioritï¿½ indexï¿½ par la taille des blocs:
+            les blocs les + grands sont prioritaires. Un bloc est constituï¿½ de son index,
             sa longueur, sa cle unique et sa liste d'occurrences"""
         hq = []
         nb_bloc = 0
         tot = 0
         nb_occ = 0
+        # for longueur, dicoOcc in sorted(self.blocs_texte.items(), key=lambda x: x[0]):
+        #     for cle_hash, lOcc in dicoOcc.items():
+        #         # item indexï¿½ par l'inverse de la longueur pour avoir les blocs
+        #         # les plus longs au dï¿½but du heapq
+        #         item = (1.0/longueur, longueur, cle_hash, lOcc)
+        #         logging.info('adding %s %s' %(longueur,lOcc))
+        #         breakpoint()
         for longueur, dicoOcc in list(self.blocs_texte.items()):
             for cle_hash, lOcc in list(dicoOcc.items()):
-                # item indexé par l'inverse de la longueur pour avoir les blocs
-                # les plus longs au début du heapq
+                # item indexï¿½ par l'inverse de la longueur pour avoir les blocs
+                # les plus longs au dï¿½but du heapq
                 item = (1.0/longueur, longueur, cle_hash, lOcc)
                 heapq.heappush(hq, item)
                 nb_bloc += 1
@@ -394,8 +404,8 @@ class Recouvrement4(Recouvrement3):
                 tot += len(lOcc) * longueur
         ###logging.debug( hq)
         assert len(hq) == nb_bloc
-        self.SMEM_nb_bloc = nb_bloc  # nb SMEM à l'origine
-        self.SMEM_nb_occ = nb_occ  # nb d'occurences de SMEM à l'origine
-        self.SMEM_tot_size = tot  # taille totale des SMEM à l'origine
+        self.SMEM_nb_bloc = nb_bloc  # nb SMEM ï¿½ l'origine
+        self.SMEM_nb_occ = nb_occ  # nb d'occurences de SMEM ï¿½ l'origine
+        self.SMEM_tot_size = tot  # taille totale des SMEM ï¿½ l'origine
         ###logging.debug("debut eliminer_recouvrements len(chaines dic)=%d",tot)
         return hq
