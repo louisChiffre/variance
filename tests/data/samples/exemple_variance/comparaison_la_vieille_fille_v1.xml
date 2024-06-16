@@ -1,0 +1,50 @@
+<?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0" ?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="lvf_v1" corresp="lvf_v2">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>La vieille fille V1</title>
+        <author>Honoré de Balzac</author>
+        <editor/>
+      </titleStmt>
+      <publicationStmt>
+        <publisher>Variance - UNIL</publisher>
+        <date>22.05.2024</date>
+      </publicationStmt>
+    <sourceDesc>
+        <bibl>
+          <date>23 octobre 1836</date>
+        </bibl>
+      </sourceDesc>
+    </fileDesc>
+  </teiHeader>
+<mediteData>
+    <informations car_mot="1" caseSensitive="1" diacriSensitive="1" fcible="lvf_v2.txt" fsource="lvf_v1.txt" lg_pivot="7" ratio="15" sepSensitive="1" seuil="50" vcible="lvf_v2" vsource="lvf_v1"/>
+        <listTranspose>
+            <transpose target="v1_009" corresp="v2_009">quand les cartes étaient données</transpose>
+        </listTranspose>
+        <listAddition/>
+        <listDeletion>
+            <deletion target="#v1_001">SCÈNE DE LA VIE DE PROVINCE [23 octobre 1836] I. </deletion>
+            <deletion target="#v1_009">.</deletion>
+            <deletion target="#v1_014" type="paragraphe"/>
+        </listDeletion>
+        <listSubstitution>
+            <substitution target="#v1_007" corresp="#v2_007">Goriza</substitution>
+            <substitution target="#v1_011" corresp="#v2_011">ses</substitution>
+        </listSubstitution>
+    </mediteData>
+  <text>
+    <body>
+<pb facs="nom_image.png" pagination="no_page"/>
+<div type="title"><p><anchor xml:id="v1_001" corresp="v2_001" function="bc"/>LA VIEILLE FILLE</p></div>
+<div type="subtitle"><p><metamark function="del" target="v1_001"/>SCÈNE DE LA VIE DE PROVINCE</p><p>[23 octobre 1836]</p></div>
+<div type="chapter" n="1"><p type="chapter">I. <anchor xml:id="v1_002" corresp="v2_002" function="bc"/>LA CHASTE SUZANNE ET SES DEUX VIEILLARDS.</p>
+<pb facs="nom_image.png" pagination="no_page"/><p><anchor xml:id="v1_003" corresp="v2_003" function="bc"/>Beaucoup de personnes ont dû rencontrer dans certaines provinces de France plus ou moins de chevaliers de Valois: il en existait un en Normandie, il s’en trouvait un autre à Bourges, un troisième florissait en 1816 dans la ville d’Alençon, peut-être le Midi possédait-il le sien; mais le dénombrement de cette tribu valésienne est ici sans importance. Tous ces chevaliers, parmi lesquels il en est sans doute qui sont Valois comme Louis XIV était Bourbon, se connaissaient si peu entre eux, qu’il ne fallait point leur parler des uns aux autres; tous laissaient d’ailleurs les Bourbons en parfaite tranquillité sur le trône de France, car il est un peu trop avéré que Henri IV devint roi, faute d’un héritier mâle dans la première branche d’Orléans, dite de Valois. S’il existe des Valois, ils proviennent de Charles de Valois, duc d’Angoulême, fils de Charles IX<anchor xml:id="v1_004" corresp="v2_004" function="bc"/> et de Marie Touchet, de qui la postérité mâle s’est également éteinte, jusqu’à preuve contraire. Aussi ne fut-ce jamais sérieusement que l’on prétendit donner cette illustre origine au mari de la fameuse Lamothe-Valois, impliquée dans l’affaire du collier.</p>
+<p><anchor xml:id="v1_005" corresp="v2_005" function="bc"/>Lorsque <anchor xml:id="v1_006" corresp="v2_006" function="bc"/>pendant la donne<anchor xml:id="v1_007" corresp="v2_007" function="bc"/> il s’établissait de ces nauséabondes dissertations, le chevalier tirait sa tabatière par un geste digne de Molé; il regardait la princesse 
+<metamark function="subst" target="v1_007"/>Goriza<anchor xml:id="v1_008" corresp="v2_008" function="bc"/>, levait dignement le couvercle; il massait sa prise, la vannait, la lévigeait, la taillait en talus; puis <anchor xml:id="v1_009" corresp="v2_010" function="bc"/>il avait garni les antres de son nez et replacé la princesse dans son gilet, toujours à gauche, <anchor xml:id="v1_010" corresp="v2_009" function="bc"/><metamark function="transposition" target="v1_010"/>quand les cartes étaient données<metamark function="del" target="v1_009"/>.</p>
+<p><anchor xml:id="v1_011" corresp="v2_011" function="bc"/>Cette horrible calomnie chagrina d’autant plus <metamark function="subst" target="v1_011"/>ses <anchor xml:id="v1_012" corresp="v2_012" function="bc"/>vieux jours, <anchor xml:id="v1_013" corresp="v2_013" function="bc"/>que la scène actuelle le montrera perdant une espérance long-temps caressée, et à laquelle il avait fait bien des sacrifices. <anchor xml:id="v1_014" corresp="v2_014" function="bc"/><metamark target="v1_014" type="paragraphe"/>Madame Lardot louait à M. le chevalier de Valois deux chambres au second étage de sa maison pour la modique somme de cent francs par an. Le digne gentilhomme dînait naturellement en ville tous les jours, et ne rentrait jamais que pour se coucher.</p>
+</div>
+</body>
+</text>
+</TEI>
