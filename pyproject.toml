@@ -12,8 +12,12 @@ ipython = "^8.25.0"
 pandas = "^2.2.2"
 nltk = "^3.8.1"
 tei-reader = "^0.0.17"
+ruff = "^0.4.10"
+click = "^8.1.7"
 
 
+lxml = "^5.2.2"
+intervaltree = "^3.1.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
 
@@ -25,3 +29,5 @@ build-backend = "poetry.core.masonry.api"
 testpaths = ["tests"]
 addopts = "--verbose"
 
+[tool.poetry.scripts]
+diff = "variance.diff:main"
