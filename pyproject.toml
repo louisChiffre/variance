@@ -19,6 +19,7 @@ click = "^8.1.7"
 lxml = "^5.2.2"
 intervaltree = "^3.1.0"
 black = "^24.4.2"
+testfixtures = "^8.3.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^8.2.2"
 

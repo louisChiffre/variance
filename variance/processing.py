@@ -1,5 +1,6 @@
 import pathlib
 import xml.etree.ElementTree as ET
+from testfixtures import compare
 
 from bs4 import BeautifulSoup
 from collections import namedtuple
@@ -14,6 +15,14 @@ namespaces = {"": "http://www.tei-c.org/ns/1.0"}
 # Register namespaces
 for prefix, uri in namespaces.items():
     ET.register_namespace(prefix, uri)
+
+escape_characters_mapping = {
+    "…": "'…",
+    #".": "'.",
+    "»": "'»",
+    "«": "«'",
+}
+newline = """'|""" + "\n"
 
 
 def read(filepath: pathlib.Path):
@@ -42,7 +51,20 @@ def add_emph_tags(txt: str):
     return txt
 
 
-newline = """'|""" + "\n"
+def add_escape_characters(txt: str):
+    for a, b in escape_characters_mapping.items():
+        txt = txt.replace(a, b)
+    return txt
+
+
+def remove_medit_annotations(txt: str):
+    # remove escape characters
+    for b, a in escape_characters_mapping.items():
+        txt = txt.replace(a, b)
+    # remplace new line
+    return txt.replace(newline, "")
+
+
 Output = namedtuple("Output", "id txt soup path tree")
 
 
@@ -58,7 +80,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
     # Add unique IDs to each element
     for i, element in enumerate(soup.find_all()):
         element["id"] = f"#{i}"
-
+    esc = add_escape_characters
     def gen():
         cursor = 0
         for div in body.find_all("div"):
@@ -73,9 +95,13 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                             yield content
                         elif content.name is None and content.string:
                             yield content.string
-                    yield newline
+                    #yield newline
 
-                txt = "".join(gen_p())
+                #txt = "".join([add_escape_characters(k) for k in gen_p()])
+                txt_ = "".join(gen_p())
+                txt = esc(txt_)
+                txt = txt + newline
+                #compare(txt_ + newline, txt)
                 old_cursor, cursor = cursor, cursor + len(txt)
                 tree[old_cursor:cursor] = p
                 yield txt
@@ -146,10 +172,6 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
 
     deltas = [handle(k) for k in appli.bbl.liste]
     return Result(appli=appli, deltas=deltas)
-
-
-def remove_medit_annotations(txt):
-    return txt.replace(newline, "")
 
 
 def process(
@@ -228,9 +250,7 @@ def process(
             print(f"html:\n{h.data}\n------\n")
         print(f"end paragraph".center(80, "#"))
 
-        # print('-'*65)
-        # for i,x in enumerate(para_htms):
-        #     print(x.data)
+
         yield from zip(ids, para_htms, para_txts)
 
     # we set the current paragraph, this will used when inserting
@@ -340,7 +360,7 @@ def process(
         else:
             raise NotImplementedError(f"Element of type {z} is not supported")
 
-    # let's clean up
+    # remove the ids
     for element in z1.soup.find_all():
         if "id" in element.attrs and element["id"].startswith("#"):
             del element["id"]
@@ -364,6 +384,6 @@ def process(
 
     # now we verify the original text has not changed
     z = xml2txt(output_filepath)
-    if not z.txt == z1.txt:
-        # TODO add more helpful comment
-        raise Exception("Text has changed.")
+    compare(z.txt,z1.txt)
+
+
