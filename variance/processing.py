@@ -78,7 +78,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
     body = soup.find("body")
 
     # Add unique IDs to each element
-    for i, element in enumerate(soup.find_all()):
+    for i, element in enumerate(soup.find_all('p')):
         element["id"] = f"#{i}"
     esc = add_escape_characters
     def gen():
