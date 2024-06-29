@@ -7,6 +7,9 @@ from variance.medite import medite as md
 from lxml import etree
 from intervaltree import Interval, IntervalTree
 from variance.medite.utils import pretty_print
+import re
+
+
 
 namespaces = {
     '': 'http://www.tei-c.org/ns/1.0'
@@ -18,13 +21,31 @@ for prefix, uri in namespaces.items():
 
 def read(filepath:pathlib.Path):
     xml_content = filepath.read_text(encoding='utf-8')
-    # Parse the XML content using BeautifulSoup
     soup = BeautifulSoup(xml_content, 'xml')
     return soup
+
+def remove_emph_tags(txt:str):
+    return ' '.join([f'/{k}/' for k in txt.split(' ')])
+
+def add_emph_tags(txt:str):
+    blocks = re.findall(r'((?:/\w+/ )+)', txt)
+    # Replace each block with the <emph> tag
+    for block in blocks:
+        words = re.findall(r'/(\w+)/', block)
+        emph_text = "<emph>" + " ".join(words) + "</emph>"
+        txt = txt.replace(block, emph_text + " ")
+    
+    # Ensure that any remaining words surrounded by / are handled
+    txt = re.sub(r'/(\w+)/', r'<emph>\1</emph>', txt)
+    
+    # Correct any multiple spaces and leading/trailing spaces
+    txt = re.sub(r'\s+', ' ', txt).strip()
+    return txt
 
 newline = """'|""" + '\n'
 Output = namedtuple('Output','id txt soup path tree')
 def xml2txt(filepath:pathlib.Path)->Output:
+    '''extract text from xml and apply pre-processing step to text'''
     soup = read(filepath=filepath)
     
     doc = {}
@@ -44,7 +65,7 @@ def xml2txt(filepath:pathlib.Path)->Output:
                 def gen_p():
                     for content in p.contents:
                         if content.name == 'emph':
-                            yield ' '.join([f'/{k}/' for k in content.get_text().split(' ')])
+                            yield remove_emph_tags(content.get_text())
                         elif isinstance(content, str):
                             yield content
                         elif content.name is None and content.string:
@@ -129,7 +150,9 @@ def calc_revisions(z1:Output, z2:Output, parameters:md.Parameters)->Result:
     
 def remove_medit_annotations(txt):
     return txt.replace(newline,'')
- 
+
+
+
 def process(source_filepath:pathlib.Path, target_filepath:pathlib.Path, parameters:md.Parameters, output_filepath:pathlib.Path):
     z1 = xml2txt(source_filepath)
     z2 = xml2txt(target_filepath)
@@ -229,7 +252,6 @@ def process(source_filepath:pathlib.Path, target_filepath:pathlib.Path, paramete
             z2_moved_blocks[key] = z
        
 
-
     def append_text(tag, start:int, end:int):
         for i, P in enumerate(zip_paragraphs(start=start, end=end)):
             id, paragraph, txt = P
@@ -316,23 +338,12 @@ def process(source_filepath:pathlib.Path, target_filepath:pathlib.Path, paramete
     processing_instruction = '<?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0" ?>\n'
     pretty_xml_str = processing_instruction + pretty_xml_str.lstrip()
     # Write to file
-    with open('output.xml', 'w', encoding='utf-8') as f:
+    with open(output_filepath, 'w', encoding='utf-8') as f:
         f.write(pretty_xml_str)
 
+    # now we verify the original text has not changed
+    z = xml2txt(output_filepath)
+    if not z.txt == z1.txt:
+        # TODO add more helpful comment
+        raise Exception('Text has changed.')
 
-    pass
-# def xml2txt(filepath:pathlib.Path):
-#     # Define the namespace
-#     ns = {'tei': 'http://www.tei-c.org/ns/1.0'}
-
-#     # Parse the XML file
-#     tree = ET.parse(filepath)
-#     root = tree.getroot()
-
-#     # Find all <p> elements within the specified namespace
-#     p_elements = root.findall('.//tei:p', ns)
-
-#     # Extract and print the text from each <p> element
-#     for p in p_elements:
-#         print(p.text)
-#     breakpoint()

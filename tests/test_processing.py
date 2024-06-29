@@ -50,3 +50,12 @@ def test_process(filename):
         output_filepath=pathlib.Path('output.xml'),
         )
 
+@pytest.mark.parametrize('txt,expected', [
+    ('rovinces de France /plus/ /ou/ /moins/ de /chevaliers/ /de/ /Valois/ il en existait',
+    'rovinces de France <emph>plus ou moins</emph> de <emph>chevaliers de Valois</emph> il en existait',),
+    ('rovinces de France /plus/ /ou/ /moins/ /de/ /chevaliers/ /de/ /Valois/ il en existait',
+    'rovinces de France <emph>plus ou moins de chevaliers de Valois</emph> il en existait',),
+])
+def test_add_emp_tags(txt, expected):
+    actual = p.add_emph_tags(txt)
+    assert actual == expected
