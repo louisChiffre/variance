@@ -9,8 +9,10 @@ from . import utile as ut
 from . import synthetic
 
 Parameters = namedtuple(
-    'Parameters', 'lg_pivot ratio seuil car_mot case_sensitive sep_sensitive diacri_sensitive algo')
-Resources = namedtuple('Resources', 'source target')
+    "Parameters",
+    "lg_pivot ratio seuil car_mot case_sensitive sep_sensitive diacri_sensitive algo",
+)
+Resources = namedtuple("Resources", "source target")
 
 DEFAULT_PARAMETERS = Parameters(
     lg_pivot=7,
@@ -20,7 +22,7 @@ DEFAULT_PARAMETERS = Parameters(
     case_sensitive=True,
     sep_sensitive=True,
     diacri_sensitive=True,
-    algo='HIS'
+    algo="HIS",
 )
 
 
@@ -29,7 +31,7 @@ class DiffTexts(object):
         # verify we are not using unsupported parameters
         assert parameters.sep_sensitive
         assert parameters.car_mot
-        assert parameters.algo == 'HIS'
+        assert parameters.algo == "HIS"
 
         self.parameters = parameters
 
@@ -41,8 +43,11 @@ class DiffTexts(object):
 
         def s2ord(x):
             return [ord(k) for k in x]
+
         if not self.parameters.diacri_sensitive:
-            tabin = s2ord("�������������������������������")
+            tabin = s2ord(
+                "�������������������������������"
+            )
             tabout = s2ord("ceeauaeiouaeiouyCEEAUAEIOUAEIOU")
             self.sepTable = dict(list(zip(tabin, tabout)))
             self.texte1 = self.texte1.translate(self.sepTable)
@@ -88,15 +93,20 @@ class DiffTexts(object):
         @type blocsDepl: list
         @param blocsDepl: liste des blocs d�plac�s
         @type filtrageDeplacements: boolean
-        @param filtrageDeplacements: si vrai on filtre les d�placement non int�ressants"""
+        @param filtrageDeplacements: si vrai on filtre les d�placement non int�ressants
+        """
 
         lDepl = []
         i = 0
-        while (len(blocsDepl) > 0 and blocsDepl[i][0] < self.lg_texte1):
+        while len(blocsDepl) > 0 and blocsDepl[i][0] < self.lg_texte1:
             longueur = blocsDepl[i][1] - blocsDepl[i][0]
-            for y in blocsDepl[i+1:]:
-                if (y[0] > self.lg_texte1-1 and longueur == y[1] - y[0] and
-                        self.texte1[blocsDepl[i][0]:blocsDepl[i][1]] == self.texte2[y[0]-self.lg_texte1:y[1]-self.lg_texte1]):
+            for y in blocsDepl[i + 1 :]:
+                if (
+                    y[0] > self.lg_texte1 - 1
+                    and longueur == y[1] - y[0]
+                    and self.texte1[blocsDepl[i][0] : blocsDepl[i][1]]
+                    == self.texte2[y[0] - self.lg_texte1 : y[1] - self.lg_texte1]
+                ):
                     lDepl.append((blocsDepl[i], y))
 
             i += 1
@@ -135,12 +145,14 @@ class DiffTexts(object):
                 # sinon, il cela devient une suppression ou une insertion simple
                 # et on l'ajoute � le liste correspondante
                 self.suppressions = ut.addition_intervalle(
-                    self.suppressions, (b1[0], b1[1]))
+                    self.suppressions, (b1[0], b1[1])
+                )
                 self.insertions = ut.addition_intervalle(
-                    self.insertions, (b2[0], b2[1]))
+                    self.insertions, (b2[0], b2[1])
+                )
                 try:  # et on le supprime de la liste des d�placements
                     k = self.occs_deplaces.index(b1)
-                    #logging.debug('k='+str(k)+' / len(o_d)='+str(len(self.occs_deplaces)))
+                    # logging.debug('k='+str(k)+' / len(o_d)='+str(len(self.occs_deplaces)))
                     self.occs_deplaces.pop(k)
                 except ValueError:
                     # b1 d�j� supprim� de la liste, on contiue
@@ -166,11 +178,11 @@ class DiffTexts(object):
             carOuMot=self.parameters.car_mot,
             long_min_pivots=self.parameters.lg_pivot,
             algoAlign=self.parameters.algo,
-            sep=self.parameters.sep_sensitive)
+            sep=self.parameters.sep_sensitive,
+        )
 
-        self.occs_deplaces, self.blocsCommuns = aligneur.run(
-            self.texte1, self.texte2)
-        logging.log(5, "Fin de l'alignement : %.2f s", time.perf_counter()-deb_al)
+        self.occs_deplaces, self.blocsCommuns = aligneur.run(self.texte1, self.texte2)
+        logging.log(5, "Fin de l'alignement : %.2f s", time.perf_counter() - deb_al)
 
         for x in self.occs_deplaces:
             if x[0] < self.lg_texte1:
@@ -182,8 +194,7 @@ class DiffTexts(object):
                 self.occs_texte1 = ut.addition_intervalle(self.occs_texte1, x)
             else:
                 self.occs_texte2 = ut.addition_intervalle(self.occs_texte2, x)
-        self.insertions = ut.miroir(
-            self.occs_texte2, self.lg_texte1, self.lg_texte)
+        self.insertions = ut.miroir(self.occs_texte2, self.lg_texte1, self.lg_texte)
         self.suppressions = ut.miroir(self.occs_texte1, 0, self.lg_texte1)
         self.lDepl = self.calcPairesBlocsDeplaces(self.occs_deplaces)
 
@@ -196,42 +207,47 @@ class DiffTexts(object):
         """
         i = 0
         # logging.debug((len(liste),liste))
-        while i < len(liste)-1:
+        while i < len(liste) - 1:
             # logging.debug(liste[i])
             (deb, fin) = liste[i]
-            (deb2, fin2) = liste[i+1]
-            if ((deb == deb2 and fin == fin2) or  # blocs identiques
-                (deb2 <= deb and fin <= fin2) or  # bloc i inclus dans bloc i+1
-                (deb <= deb2 and fin2 <= fin) or  # bloc i+1 inclus dans bloc i
-                    (fin == deb2)):  # blocs adjacents
-                liste[i:i+2] = [(deb, fin2)]
+            (deb2, fin2) = liste[i + 1]
+            if (
+                (deb == deb2 and fin == fin2)  # blocs identiques
+                or (deb2 <= deb and fin <= fin2)  # bloc i inclus dans bloc i+1
+                or (deb <= deb2 and fin2 <= fin)  # bloc i+1 inclus dans bloc i
+                or (fin == deb2)
+            ):  # blocs adjacents
+                liste[i : i + 2] = [(deb, fin2)]
             else:
                 i += 1
         return liste
 
     def calc_result(self):
         """Lance,textesApparies=False, dossierRapport=None, coeff=None
-        si texteApparies est vrai, cela signifie que les 2 textes doivent 
+        si texteApparies est vrai, cela signifie que les 2 textes doivent
         d�j� �tre align�s ligne � ligne, ainsi, la comparaison se fera par ligne
         """
 
         self.reconstituer_textes()
         self.tous_remplacements = []
 
-        resultat = ut.Resultat(self.insertions, self.suppressions,
-                               self.occs_deplaces, self.tous_remplacements,
-                               self.lg_texte1, self.texte_original,
-                               self.blocsCommuns, self.lDepl)
-        logging.debug('Cr�ation BiBlocListWD')
+        resultat = ut.Resultat(
+            self.insertions,
+            self.suppressions,
+            self.occs_deplaces,
+            self.tous_remplacements,
+            self.lg_texte1,
+            self.texte_original,
+            self.blocsCommuns,
+            self.lDepl,
+        )
+        logging.debug("Cr�ation BiBlocListWD")
         bbl = synthetic.BiBlocListWD(resultat, self.parameters)
-        logging.debug('BiBlocListWD.toResultat()')
+        logging.debug("BiBlocListWD.toResultat()")
         res = bbl.toResultat()
-        logging.debug('calcPairesBlocsDeplaces()')
+        logging.debug("calcPairesBlocsDeplaces()")
         res.setPairesBlocsDeplaces(self.lDepl)
-        logging.debug('BiBlocListWD.print_html()')
+        logging.debug("BiBlocListWD.print_html()")
         bbl.evaluation()
         self.bbl = bbl
         return res
-
-
-

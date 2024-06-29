@@ -26,7 +26,7 @@ class Alignement:
         raise NotImplementedError
 
 
-class AlignLIS (Alignement):
+class AlignLIS(Alignement):
 
     def _couverture(self, pi):
         """Calcule la couverture d'une liste d'entiers
@@ -75,7 +75,7 @@ class AlignLIS (Alignement):
         return r
 
     def _creerPi(self, S1, S2):
-        """Crée la liste PI(S1,S2), liste des positions de chaque élément de S1 dans S2 dans l'ordre décroissant        
+        """Crée la liste PI(S1,S2), liste des positions de chaque élément de S1 dans S2 dans l'ordre décroissant
         @type S1: list
         @param S1: liste d'objets
         @type S2: list
@@ -118,7 +118,7 @@ class AlignLIS (Alignement):
             for i in range(lastkey, key):
                 l.append(L2[i])
             res1.append((L2[key], l))
-            lastkey = key+1
+            lastkey = key + 1
         if lastkey < len(L2):
             l = []
             for i in range(lastkey, len(L2)):
@@ -131,7 +131,7 @@ class AlignLIS (Alignement):
             for i in range(lastkey, key):
                 l.append(L1[i])
             res2.append((L1[key], l))
-            lastkey = key+1
+            lastkey = key + 1
 
         if lastkey < len(L1):
             l = []
@@ -139,11 +139,11 @@ class AlignLIS (Alignement):
                 l.append(L1[i])
             res2.append((None, l))
 
-        #print res2,res1
+        # print res2,res1
         return res2, res1
 
 
-class AlignHIS (AlignLIS):
+class AlignHIS(AlignLIS):
     def _posOcurrences(self, c, l, posC):
         """
         cherche les positions de c dans la liste l, le resultat est renvoyé dans l'ordre décroissant des indexes
@@ -163,33 +163,33 @@ class AlignHIS (AlignLIS):
         return r
 
     def _init_alignement(self, L1, L2, texte1, texte2, lt1):
-        """ Transformation en un alphabet ordonné """
+        """Transformation en un alphabet ordonné"""
         Lkey1 = []
         Lkey2 = []
 
         # création des listes de hash
 
         for bloc in L1:
-            cle = hash(texte1[bloc[0]:bloc[1]])
+            cle = hash(texte1[bloc[0] : bloc[1]])
             longueur = bloc[1] - bloc[0]
             Lkey1.append((cle, longueur))
 
         for bloc in L2:
-            cle = hash(texte2[bloc[0]-lt1:bloc[1]-lt1])
+            cle = hash(texte2[bloc[0] - lt1 : bloc[1] - lt1])
             longueur = bloc[1] - bloc[0]
             Lkey2.append((cle, longueur))
 
         return Lkey1, Lkey2
 
     def _lcis(self, couverture):
-        """Calcule la plus longue sous séquence améliorante d'une liste a partir de sa couverture 
+        """Calcule la plus longue sous séquence améliorante d'une liste a partir de sa couverture
         @type couverture: list of list
         @param couverture: la couverture
         @rtype: list
         @return: la plus longue sous séquence améliorante
         @see: #couverture
         """
-        i = len(couverture)-1
+        i = len(couverture) - 1
         if i < 0:
             return []
         I = []
@@ -199,24 +199,24 @@ class AlignHIS (AlignLIS):
         # on choisit r le plus petit possible afin d'obtenir la sous séquence la plus décalée vers la gauche du texte
 
         # initialisation
-        #r = random.randint(0,len(couverture[i])-1)
-        r = len(couverture[i])-1
-        #r = 0
+        # r = random.randint(0,len(couverture[i])-1)
+        r = len(couverture[i]) - 1
+        # r = 0
         debug = False
         x = couverture[i][r]
         if debug:
             print(x)
         I.append(x)
-        while (i > 0):
+        while i > 0:
             trouve = False
             j = 0
             liste_y = []
             # on cherche l'élément de position maximal précédent le dernier élément placé dans la plus longue sous-séquence commune
             # (les éléments sont triés par ordre de position décroissante dans les séquences de la couverture)
             if debug:
-                print((couverture[i-1]))
-            while j < len(couverture[i-1]):  # trouve == False :
-                element = couverture[i-1][j]
+                print((couverture[i - 1]))
+            while j < len(couverture[i - 1]):  # trouve == False :
+                element = couverture[i - 1][j]
                 pos = element[0]
                 pos2 = element[1]
                 poids = element[2][1]
@@ -240,9 +240,9 @@ class AlignHIS (AlignLIS):
             if debug:
                 print(x)
             if debug:
-                print('-------------')
+                print("-------------")
         if debug:
-            print('====================')
+            print("====================")
         assert len(I) == len(couverture)
         I.reverse()
         if debug:
