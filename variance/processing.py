@@ -1,14 +1,17 @@
+from itertools import zip_longest
 import pathlib
 import xml.etree.ElementTree as ET
-from testfixtures import compare
+import testfixtures
 
 from bs4 import BeautifulSoup
+import bs4
 from collections import namedtuple
 from variance.medite import medite as md
 from lxml import etree
 from intervaltree import Interval, IntervalTree
 from variance.medite.utils import pretty_print
 import re
+import itertools
 
 
 namespaces = {"": "http://www.tei-c.org/ns/1.0"}
@@ -16,11 +19,15 @@ namespaces = {"": "http://www.tei-c.org/ns/1.0"}
 for prefix, uri in namespaces.items():
     ET.register_namespace(prefix, uri)
 
+esc = "'"
+
 escape_characters_mapping = {
     "…": "'…",
-    #".": "'.",
-    "»": "'»",
-    "«": "«'",
+    ".": "'.",
+    #".": "XXXXXXXXXXXXXXXXXXXXXXXXXX",
+    
+     "»": "'»",
+     "«": "«'",
 }
 newline = """'|""" + "\n"
 
@@ -57,15 +64,68 @@ def add_escape_characters(txt: str):
     return txt
 
 
-def remove_medit_annotations(txt: str):
+def remove_medite_annotations(txt: str):
     # remove escape characters
+    txt=txt.replace(newline, "")
     for b, a in escape_characters_mapping.items():
         txt = txt.replace(a, b)
     # remplace new line
-    return txt.replace(newline, "")
-
+    return txt
+ 
 
 Output = namedtuple("Output", "id txt soup path tree")
+
+def to_txt(filepath:pathlib.Path):
+    soup = read(filepath=filepath)
+    def gen():
+        for div in soup.find('body').find_all("div"):
+            p_elements = div.find_all("p")
+            for p in p_elements:
+                def gen_p():
+                    for content in p.contents:
+                        if content.name == "emph":
+                            yield content.get_text()
+                        elif isinstance(content, str):
+                            yield content
+                        elif content.name is None and content.string:
+                            yield content.string
+                    yield "\n"
+                txt = "".join(gen_p())
+            yield txt
+    return ''.join(gen()).split('\n')
+
+def find_next_string_element(z:bs4.element.Tag):
+    zz = z.next_sibling
+    if zz is None:
+        return None
+    
+    if isinstance(zz, bs4.element.NavigableString):
+        return zz
+    return find_next_string_element(zz)
+
+
+
+def remove_newline_annotation(body):
+    for div in body.find_all('div'):
+        paragraphs = div.find_all("p")
+        for paragraph in paragraphs: 
+            z = list(paragraph.strings)
+            for x in paragraph.contents:
+                # if we have a string
+                if isinstance(x, bs4.element.NavigableString):
+                    # first we replace the medite annotation
+                    #x.replace_with(remove_medit_annotations(x.string))
+                    # then we check if an escape character was not cut off
+                    if len(x)>0 and x.string[-1] == esc:
+                        nx = find_next_string_element(x)
+                        # if we have a next string
+                        assert nx is not None
+                        # if the last character and the starts of the next text forms a newline
+                        if (x.string[-1]+nx.string).startswith(newline):
+                            x.replace_with(str(x)[:-1])
+                            assert nx.string == newline[1:]
+                            # we replace it with empty
+                            nx.replace_with('')      
 
 
 def xml2txt(filepath: pathlib.Path) -> Output:
@@ -74,6 +134,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
 
     doc = {}
     tree = IntervalTree()
+    tree_txt = IntervalTree()
     # Find all <p> elements
     body = soup.find("body")
 
@@ -90,6 +151,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                 def gen_p():
                     for content in p.contents:
                         if content.name == "emph":
+                            #TODO verify there is no escape character to be done here
                             yield remove_emph_tags(content.get_text())
                         elif isinstance(content, str):
                             yield content
@@ -108,25 +170,27 @@ def xml2txt(filepath: pathlib.Path) -> Output:
 
     txts = list(gen())
     txt = "".join(txts)
-    filepath.with_suffix(".txt").write_text(txt, encoding="utf-8")
+    txt_filepath = filepath.with_suffix(".txt")
+    print(f'printing pre-process {txt_filepath}')
+    txt_filepath.write_text(txt, encoding="utf-8")
 
-    ps = [k.data for k in sorted(tree, key=lambda x: x.begin)]
-    ps_ = txt.split(newline)
-    print("\n")
-    for h, t in zip(ps, ps_):
-        print("paragraph".center(80, "*"))
-        print(h.string)
-        print("txt".center(80, "*"))
-        print(t)
-        print("*" * 64)
-        print("\n\n")
+    # ps = [k.data for k in sorted(tree, key=lambda x: x.begin)]
+    # ps_ = [txt[k.begin:k.end] for k in sorted(tree, key=lambda x: x.begin)]
+    # print("\n")
+    # for h, t in zip(ps, ps_):
+    #     print("paragraph".center(80, "*"))
+    #     print(h.string)
+    #     print("txt".center(80, "*"))
+    #     print(t)
+    #     print("*" * 64)
+    #     print("\n\n")
 
-    # for it, txt_ in zip(sorted(tree,key=lambda x:x.begin),ps_):
-    # breakpoint()
+    # # for it, txt_ in zip(sorted(tree,key=lambda x:x.begin),ps_):
+    # # breakpoint()
 
-    n_p = len(tree)
-    n_p_ = len(txt.split(newline)[:-1])
-    assert n_p == n_p_
+    # n_p = len(tree)
+    # n_p_ = len(txt.split(newline)[:-1])
+    # assert n_p == n_p_
 
     return Output(
         id=soup.find("TEI")["xml:id"], txt=txt, soup=soup, tree=tree, path=filepath
@@ -171,6 +235,10 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
                 assert False
 
     deltas = [handle(k) for k in appli.bbl.liste]
+    # we verify nothing was lost
+
+    z  = [k for k in deltas if type(k)in [BC,S,R,DA]]
+    assert ''.join([z1.txt[k[0]:k[1]] for k in z])==z1.txt
     return Result(appli=appli, deltas=deltas)
 
 
@@ -236,20 +304,27 @@ def process(
 
     def zip_paragraphs(start: int, end: int):
         txt = z1.txt[start:end]
-        para_txts = [k for k in txt.split(newline)]
+        #para_txts_ = [k for k in txt.split(newline)]
+        
+        para_txts = [z1.txt[max(k.begin,start):min(k.end,end)] for k in sorted(z1.tree[start:end], key=lambda x: x.begin)]
+        #breakpoint()
+        
         para_htms = sorted(z1.tree[start:end], key=lambda x: x.begin)
         ids = [k.data["id"] for k in para_htms]
-        assert len(para_htms) > 0
-        assert len(para_txts) >= len(para_htms)
         print(f"paragraphs between {start} end {end}".center(80, "#"))
         print(f"text: [{txt}]")
-        for i, x in enumerate(zip(para_txts, para_htms)):
+        for i, x in enumerate(zip_longest(para_txts, para_htms)):
             t, h = x
             print(f"paragraph {i}".center(80, "*"))
             print(f"text:\n[{t}]\n------\n")
-            print(f"html:\n{h.data}\n------\n")
+            if h is not None:
+                print(f"html:\n{h.data}\n------\n")
+            else:
+                print(f"html:\n{h}\n------\n")
         print(f"end paragraph".center(80, "#"))
-
+        assert len(para_txts) >= len(para_htms)
+        assert len(para_htms) > 0
+        #breakpoint()
 
         yield from zip(ids, para_htms, para_txts)
 
@@ -259,7 +334,7 @@ def process(
     def reset_paragraph(id, zp):
         print(updated)
         if not id in updated:
-            print(f"resetting paragraph \n{zp}\n")
+            print(f"resetting paragraph {id} \n{zp}\n")
             zp.string = ""
             updated.add(id)
 
@@ -288,7 +363,8 @@ def process(
                 append_tag(tag=tag, zp=zp)
             print(f"appending {txt=} on {zp}")
             paragraph_stack.append(zp)
-            zp.append(remove_medit_annotations(txt))
+            #breakpoint()
+            zp.append(txt)
 
     for z in res.deltas:
         if isinstance(z, BC):
@@ -303,13 +379,14 @@ def process(
             print("SUPPRESION".center(120, "$"))
             target_id = f"v1_{z.start}_{z.end}"
             tag = metamark(function="del", target=target_id)
+            
             append_text(tag=tag, start=z.start, end=z.end)
             txt = z1.txt[z.start : z.end]
             if txt.strip() == "":
-                add_list(txt="", attributes={"type": "paragraphe"}, name="deletion")
+                add_list(txt=" ", attributes={"type": "paragraphe"}, name="deletion")
             else:
                 add_list(
-                    txt=remove_medit_annotations(txt),
+                    txt=txt,
                     attributes=dict(corresp=target_id),
                     name="deletion",
                 )
@@ -322,7 +399,7 @@ def process(
             reset_paragraph(id=current_paragraph["id"], zp=current_paragraph)
             append_tag(tag=tag, zp=current_paragraph)
             add_list(
-                txt=remove_medit_annotations(z2.txt[z.start : z.end]),
+                txt=z2.txt[z.start : z.end],
                 attributes=dict(corresp=target_id),
                 name="addition",
             )
@@ -353,7 +430,7 @@ def process(
             )
             append_text(tag=tag, start=z.a_start, end=z.a_end)
             add_list(
-                txt=remove_medit_annotations(z2.txt[z.b_start : z.b_end]),
+                txt=z2.txt[z.b_start : z.b_end],
                 attributes=dict(target=id_v1, corresp=id_v2),
                 name="substitution",
             )
@@ -365,7 +442,14 @@ def process(
         if "id" in element.attrs and element["id"].startswith("#"):
             del element["id"]
 
-    root.append(ET.fromstring(str(z1.soup.find("body"))))
+    
+    # post processing
+    # remove newline
+    remove_newline_annotation(z1.soup.find('body'))
+    
+    txt_raw = str(z1.soup.find("body"))
+    txt = remove_medite_annotations(txt_raw)
+    root.append(ET.fromstring(txt))
     tree = ET.ElementTree(root)
     tree.write(output_filepath, encoding="utf-8", xml_declaration=True, method="xml")
 
@@ -379,11 +463,12 @@ def process(
     processing_instruction = '<?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0" ?>\n'
     pretty_xml_str = processing_instruction + pretty_xml_str.lstrip()
     # Write to file
+
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
 
     # now we verify the original text has not changed
-    z = xml2txt(output_filepath)
-    compare(z.txt,z1.txt)
-
+    s1 = to_txt(source_filepath)
+    s2 = to_txt(output_filepath)
+    testfixtures.compare(s1,s2, x_label='original text', y_label='processed text')
 

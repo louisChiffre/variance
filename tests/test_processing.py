@@ -29,7 +29,8 @@ Block = namedtuple("Block", "a b")
     ],
 )
 def test_process(filename):
-    soup = p.read(filepath=DATA_DIR / filename)
+    filepath = DATA_DIR / filename
+    soup = p.read(filepath=filepath)
     dic = soup.find("informations").attrs
 
     parameters = md.Parameters(
@@ -46,7 +47,7 @@ def test_process(filename):
     z = [
         p.xml2txt(k)
         for k in DATA_DIR.glob("*.xml")
-        if not str(k.name).startswith("comp")
+        if not str(k.name).startswith("comp") and not str(k.name).startswith('diff')
     ]
 
     # lg_pivot ratio seuil car_mot case_sensitive sep_sensitive diacri_sensitive algo')
@@ -56,7 +57,7 @@ def test_process(filename):
         source_filepath=id2filepath[dic["vsource"]],
         target_filepath=id2filepath[dic["vcible"]],
         parameters=parameters,
-        output_filepath=pathlib.Path("output.xml"),
+        output_filepath=filepath.with_suffix('.output.xml'),
     )
 
 
