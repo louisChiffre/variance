@@ -1,5 +1,7 @@
 from itertools import zip_longest
 import pathlib
+import xml.dom.minidom as minidom
+from pathlib import Path
 import xml.etree.ElementTree as ET
 import testfixtures
 
@@ -64,7 +66,7 @@ def add_escape_characters(txt: str):
     return txt
 
 
-def remove_medite_annotations(txt: str):
+def remove_medite_annotations(txt: str)->str:
     # remove escape characters
     txt=txt.replace(newline, "")
     for b, a in escape_characters_mapping.items():
@@ -126,7 +128,6 @@ def remove_newline_annotation(body):
                             assert nx.string == newline[1:]
                             # we replace it with empty
                             nx.replace_with('')      
-
 
 def xml2txt(filepath: pathlib.Path) -> Output:
     """extract text from xml and apply pre-processing step to text"""
@@ -471,4 +472,69 @@ def process(
     s1 = to_txt(source_filepath)
     s2 = to_txt(output_filepath)
     testfixtures.compare(s1,s2, x_label='original text', y_label='processed text')
+
+
+def create_tei_xml(path: Path, pub_date_str: str, title_str: str, version_nb: int)->Path:
+    assert path.exists(), f"{path} does not exist"
+    # Namespaces
+    TEI_NS = "http://www.tei-c.org/ns/1.0"
+    ET.register_namespace("", TEI_NS)
+
+    # Root element with namespace and attributes
+    tei = ET.Element(f"{{{TEI_NS}}}TEI", attrib={"xml:id": "lvf_v1"})
+
+    # teiHeader and its structure
+    teiHeader = ET.SubElement(tei, f"{{{TEI_NS}}}teiHeader")
+
+    # fileDesc and its structure
+    fileDesc = ET.SubElement(teiHeader, f"{{{TEI_NS}}}fileDesc")
+
+    # titleStmt and its structure
+    titleStmt = ET.SubElement(fileDesc, f"{{{TEI_NS}}}titleStmt")
+    title = ET.SubElement(titleStmt, f"{{{TEI_NS}}}title")
+    title.text = f'{title_str} V{version_nb}'
+    author = ET.SubElement(titleStmt, f"{{{TEI_NS}}}author")
+    author.text = ""
+    editor = ET.SubElement(titleStmt, f"{{{TEI_NS}}}editor")
+
+    # publicationStmt and its structure
+    publicationStmt = ET.SubElement(fileDesc, f"{{{TEI_NS}}}publicationStmt")
+    publisher = ET.SubElement(publicationStmt, f"{{{TEI_NS}}}publisher")
+    publisher.text = "Variance - UNIL"
+    pub_date = ET.SubElement(publicationStmt, f"{{{TEI_NS}}}date")
+    pub_date.text = f'{pub_date_str}'
+
+    # sourceDesc and its structure
+    sourceDesc = ET.SubElement(fileDesc, f"{{{TEI_NS}}}sourceDesc")
+    bibl = ET.SubElement(sourceDesc, f"{{{TEI_NS}}}bibl")
+    bibl_date = ET.SubElement(bibl, f"{{{TEI_NS}}}date")
+    bibl_date.text = "n/a"
+
+    # text body
+    text = ET.SubElement(tei, f"{{{TEI_NS}}}text")
+    body = ET.SubElement(text, f"{{{TEI_NS}}}body")
+    div = ET.SubElement(body, f'{{{TEI_NS}}}div')
+    # Split body_text by newlines and create <p> elements for each paragraph
+    txt = path.read_text(encoding='utf-8')
+    paragraphs = txt.split(newline + '\n' )
+    for para in paragraphs:
+        p_element = ET.SubElement(div, f'{{{TEI_NS}}}p')
+        p_element.text = add_emph_tags(remove_medite_annotations(txt=para))
+
+    # for para in paragraphs:
+    #     if para.strip():  # Check if the paragraph is not empty
+    #         p_element = ET.SubElement(body, f'{{{TEI_NS}}}p')
+    #         p_element.text = para.strip()
+    # Generate the XML tree
+    rough_string = ET.tostring(tei, "utf-8")
+
+    # Pretty print using minidom
+    reparsed = minidom.parseString(rough_string)
+    pretty_xml = reparsed.toprettyxml(indent="  ")
+
+    # Write the pretty-printed XML to a file
+    output_path = path.with_suffix(".xml")
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(pretty_xml)
+    return output_path
 

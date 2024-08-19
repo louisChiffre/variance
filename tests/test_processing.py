@@ -4,6 +4,7 @@ import pathlib
 from pathlib import Path
 from collections import namedtuple
 from variance.medite import medite as md
+from variance.processing import create_tei_xml
 
 DATA_DIR = Path("tests/data/samples")
 XML_DATA_DIR = DATA_DIR / Path("exemple_variance")
@@ -86,66 +87,39 @@ def test_add_emp_tags(txt, expected):
     "name,title", [["vf", "La vieille fille"], ["vndtt", "La Vendetta"]]
 )
 def test_post_processing(name, title):
-    p1 = TXT_DATA_DIR / f"1{name}.txt"
-    p2 = TXT_DATA_DIR / f"2{name}.txt"
+    p1_ref = TXT_DATA_DIR / f"1{name}.txt"
+    p2_ref = TXT_DATA_DIR / f"2{name}.txt"
+    
+    #we copy the test file in outputs so we are sure they will be not overwritten
+    p1 = TXT_DATA_DIR / 'outputs'/ f"1{name}.txt"
+    p2 = TXT_DATA_DIR / 'outputs'/ f"2{name}.txt"
+
+    import shutil
+    shutil.copyfile(p1_ref, p1)
+    shutil.copyfile(p2_ref, p2)
+
+
     pub_date_str = "01.07.2024"
-    create_tei_xml(path=p1, pub_date_str=pub_date_str, title=title, version_nb=1)
-    create_tei_xml(path=p2, pub_date_str=pub_date_str, title=title, version_nb=2)
-    print(name)
+    
+    # we transform first the the txt in tei xml
+    p1_xml = create_tei_xml(path=p1, pub_date_str=pub_date_str, title_str=title, version_nb=1)
+    p2_xml = create_tei_xml(path=p2, pub_date_str=pub_date_str, title_str=title, version_nb=2)
+    
 
-
-import xml.etree.ElementTree as ET
-import xml.dom.minidom as minidom
-
-
-def create_tei_xml(path: Path, pub_date_str: str, title: str, version_nb: int):
-    assert path.exists(), f"{path} does not exist"
-    # Namespaces
-    TEI_NS = "http://www.tei-c.org/ns/1.0"
-    ET.register_namespace("", TEI_NS)
-
-    # Root element with namespace and attributes
-    tei = ET.Element(f"{{{TEI_NS}}}TEI", attrib={"xml:id": "lvf_v1"})
-
-    # teiHeader and its structure
-    teiHeader = ET.SubElement(tei, f"{{{TEI_NS}}}teiHeader")
-
-    # fileDesc and its structure
-    fileDesc = ET.SubElement(teiHeader, f"{{{TEI_NS}}}fileDesc")
-
-    # titleStmt and its structure
-    titleStmt = ET.SubElement(fileDesc, f"{{{TEI_NS}}}titleStmt")
-    title = ET.SubElement(titleStmt, f"{{{TEI_NS}}}title")
-    title.text = f'{title} V{version_nb}'
-    author = ET.SubElement(titleStmt, f"{{{TEI_NS}}}author")
-    author.text = ""
-    editor = ET.SubElement(titleStmt, f"{{{TEI_NS}}}editor")
-
-    # publicationStmt and its structure
-    publicationStmt = ET.SubElement(fileDesc, f"{{{TEI_NS}}}publicationStmt")
-    publisher = ET.SubElement(publicationStmt, f"{{{TEI_NS}}}publisher")
-    publisher.text = "Variance - UNIL"
-    pub_date = ET.SubElement(publicationStmt, f"{{{TEI_NS}}}date")
-    pub_date.text = f'{pub_date_str}'
-
-    # sourceDesc and its structure
-    sourceDesc = ET.SubElement(fileDesc, f"{{{TEI_NS}}}sourceDesc")
-    bibl = ET.SubElement(sourceDesc, f"{{{TEI_NS}}}bibl")
-    bibl_date = ET.SubElement(bibl, f"{{{TEI_NS}}}date")
-    bibl_date.text = "n/a"
-
-    # text body
-    text = ET.SubElement(tei, f"{{{TEI_NS}}}text")
-    body = ET.SubElement(text, f"{{{TEI_NS}}}body")
-
-    # Generate the XML tree
-    rough_string = ET.tostring(tei, "utf-8")
-
-    # Pretty print using minidom
-    reparsed = minidom.parseString(rough_string)
-    pretty_xml = reparsed.toprettyxml(indent="  ")
-
-    # Write the pretty-printed XML to a file
-    output_path = path.with_suffix(".xml")
-    with open(output_path, "w", encoding="utf-8") as f:
-        f.write(pretty_xml)
+    parameters = md.Parameters(
+        lg_pivot=7,
+        ratio=15,
+        seuil=50,
+        car_mot=True,  # always,
+        case_sensitive=True,
+        sep_sensitive=True,
+        diacri_sensitive=True,
+        algo="HIS",
+    )
+    output_filepath= TXT_DATA_DIR / 'outputs' / f'{name}_v1_vs_v2.xml'
+    p.process(
+        source_filepath=p1_xml,
+        target_filepath=p2_xml,
+        parameters=parameters,
+        output_filepath=output_filepath
+    )
