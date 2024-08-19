@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="lvf_v1">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>&lt;Element '{http://www.tei-c.org/ns/1.0}title' at 0x119d627a0&gt; V2</title>
+        <author/>
+        <editor/>
+      </titleStmt>
+      <publicationStmt>
+        <publisher>Variance - UNIL</publisher>
+        <date>01.07.2024</date>
+      </publicationStmt>
+      <sourceDesc>
+        <bibl>
+          <date>n/a</date>
+        </bibl>
+      </sourceDesc>
+    </fileDesc>
+  </teiHeader>
+  <text>
+    <body/>
+  </text>
+</TEI>
