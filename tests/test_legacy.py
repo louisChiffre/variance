@@ -169,14 +169,13 @@ def check(xml_filename):
     assert_equal(actual.bc, expected.bc)
     assert_equal(actual.remp, expected.remp)
 
+
 # TODO investigate failure
 xml_filenames = (
-    pytest.param("tests/data/Labelle/Informations.xml",marks=pytest.mark.xfail),
-    pytest.param('tests/data/Labelle/Informations_dia.xml',marks=pytest.mark.xfail),
-    pytest.param('tests/data/Labelle/Informations_case.xml',marks=pytest.mark.xfail),
+    pytest.param("tests/data/Labelle/Informations.xml", marks=pytest.mark.xfail),
+    pytest.param("tests/data/Labelle/Informations_dia.xml", marks=pytest.mark.xfail),
+    pytest.param("tests/data/Labelle/Informations_case.xml", marks=pytest.mark.xfail),
 )
-
-
 
 
 @pytest.mark.parametrize("xml_filename", xml_filenames)

@@ -21,8 +21,7 @@ default = md.DEFAULT_PARAMETERS
     "--diacri-sensitive/--no-diacri-sensitive", default=default.diacri_sensitive
 )
 @click.option("--output-dir", type=click.Path(), default="")
-@click.option("--output-prefix",default="diff_")
-
+@click.option("--output-prefix", default="diff_")
 def run(
     source_filename,
     target_filename,
@@ -57,20 +56,20 @@ def run(
         diacri_sensitive,
         algo,
     )
-    if output_dir=='':
+    if output_dir == "":
         output_dir = source_filepath.parent
-    output_path = pathlib.Path(output_dir, f'{output_prefix}{source_filepath.name}')
-    
-    # we verify we are not deleting a source file 
+    output_path = pathlib.Path(output_dir, f"{output_prefix}{source_filepath.name}")
+
+    # we verify we are not deleting a source file
     assert not output_path == target_filepath
     assert not output_path == source_filepath
-    p.process(source_filepath=source_filepath,
-              target_filepath=target_filepath,
-              parameters=parameters,
-              output_filepath=output_path)
+    p.process(
+        source_filepath=source_filepath,
+        target_filepath=target_filepath,
+        parameters=parameters,
+        output_filepath=output_path,
+    )
     click.echo("output written to {output_path}".format(**locals()))
-    
-
 
 
 if __name__ == "__main__":
