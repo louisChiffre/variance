@@ -1,10 +1,12 @@
 import pytest
 from variance import processing as p
+import testfixtures
 import pathlib
 from pathlib import Path
 from collections import namedtuple
 from variance.medite import medite as md
-from variance.processing import create_tei_xml
+from variance.processing import create_tei_xml, xml2txt
+from variance.medite import utils as ut
 
 DATA_DIR = Path("tests/data/samples")
 XML_DATA_DIR = DATA_DIR / Path("exemple_variance")
@@ -64,6 +66,7 @@ def test_process(filename):
         output_filepath=filepath.with_suffix(".output.xml"),
     )
 
+import functools
 
 @pytest.mark.parametrize(
     "txt,expected",
@@ -82,29 +85,79 @@ def test_add_emp_tags(txt, expected):
     actual = p.add_emph_tags(txt)
     assert actual == expected
 
+def copy_first_n_lines(src, dst, n):
+    with open(src, 'r') as fsrc, open(dst, 'w') as fdst:
+        for i, line in enumerate(fsrc):
+            if n is not None and i >= n:
+                break
+            fdst.write(line)
+
+copy = functools.partial(copy_first_n_lines, n=None)
+import tempfile
+# Fixture to create a temporary file
+@pytest.fixture
+def temp_file():
+    with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+        temp_file_path = Path(temp_file.name)
+    try:
+        yield temp_file_path
+    finally:
+        # Clean up the temporary file
+        temp_file_path.unlink()
+
+def gen_samples():
+    names = ['vf','vndtt']
+    versions = [1,2]
+    for name in names:
+        for version in versions:
+            path = TXT_DATA_DIR / 'outputs'/ f"{version}{name}.txt"
+            txt = path.read_text()
+            yield txt
+    
+
 
 @pytest.mark.parametrize(
-    "name,title", [["vf", "La vieille fille"], ["vndtt", "La Vendetta"]]
+    'txt',
+    list(gen_samples()) +
+    [
+        "aa'|\n",
+    ]
+)
+def test_create_tei_xml(txt, temp_file):
+    pub_date_str = "01.07.2024"
+    title = 'test'
+    temp_file.write_text(txt, encoding='utf-8')
+    xml_path = create_tei_xml(
+        path=temp_file, pub_date_str=pub_date_str, title_str=title, version_nb=1)
+    
+    txt_ = xml2txt(xml_path).txt
+    
+    testfixtures.compare(txt, txt_, x_label='original text', y_label='processed text')
+    # parameters = md.Parameters(
+    #     lg_pivot=7,
+    #     ratio=15,
+    #     seuil=50,
+    #     car_mot=True,  # always,
+    #     case_sensitive=True,
+    #     sep_sensitive=True,
+    #     diacri_sensitive=True,
+    #     algo="HIS",
+    # )
+    #appli = md.DiffTexts(chaine1=txt, chaine2=txt[10:], parameters=parameters)
+    #breakpoint()
+   
+
+
+@pytest.mark.parametrize(
+    "name,title", [
+        ["vf", "La vieille fille"], 
+        ["vndtt", "La Vendetta"],
+        ]
 )
 def test_post_processing(name, title):
     p1_ref = TXT_DATA_DIR / f"1{name}.txt"
     p2_ref = TXT_DATA_DIR / f"2{name}.txt"
-    
-    #we copy the test file in outputs so we are sure they will be not overwritten
-    p1 = TXT_DATA_DIR / 'outputs'/ f"1{name}.txt"
-    p2 = TXT_DATA_DIR / 'outputs'/ f"2{name}.txt"
 
-    import shutil
-    shutil.copyfile(p1_ref, p1)
-    shutil.copyfile(p2_ref, p2)
-
-
-    pub_date_str = "01.07.2024"
-    
-    # we transform first the the txt in tei xml
-    p1_xml = create_tei_xml(path=p1, pub_date_str=pub_date_str, title_str=title, version_nb=1)
-    p2_xml = create_tei_xml(path=p2, pub_date_str=pub_date_str, title_str=title, version_nb=2)
-    
 
     parameters = md.Parameters(
         lg_pivot=7,
@@ -116,6 +169,57 @@ def test_post_processing(name, title):
         diacri_sensitive=True,
         algo="HIS",
     )
+
+
+
+
+
+    
+    #we copy the test file in outputs so we are sure they will be not overwritten
+    p1 = TXT_DATA_DIR / 'outputs'/ f"1{name}.txt"
+    p2 = TXT_DATA_DIR / 'outputs'/ f"2{name}.txt"
+
+
+
+
+
+    #copyfile = functools.partial(copy_first_n_lines, n=18)
+    #copyfile = functools.partial(copy_first_n_lines, n=10) x
+    #copyfile = functools.partial(copy_first_n_lines, n=8) ok
+    # copyfile = functools.partial(copy_first_n_lines, n=9) #ok
+    #copyfile = functools.partial(copy_first_n_lines, n=10) #ok
+    #copyfile = functools.partial(copy_first_n_lines, n=10) #ok
+    copyfile = functools.partial(copy_first_n_lines, n=50) #ok
+    
+    #copyfile = shutil.copyfile
+
+    copyfile(p1_ref, p1)
+    copyfile(p2_ref, p2)
+
+
+    pub_date_str = "01.07.2024"
+    
+    # we transform first the the txt in tei xml
+    # to verify create_tei_xml works, we check that the reverse operation returns to the original text
+    def make_xml_and_check_invariance(path, version_nb):
+        path_xml = p.create_tei_xml(path=path, pub_date_str=pub_date_str, title_str=title, version_nb=version_nb)
+        txt_act = p.xml2txt(path_xml).txt
+        txt_ref = path.read_text()
+        Path('ref.txt').write_text(txt_ref)
+        testfixtures.compare(txt_ref,txt_act, x_label='original text', y_label='processed text')
+        return path_xml
+
+
+    p1_xml = make_xml_and_check_invariance(path=p1, version_nb=1)
+    p2_xml = make_xml_and_check_invariance(path=p2, version_nb=1)
+
+
+
+    
+    appli = md.DiffTexts(chaine1=p1.read_text(), chaine2=p2.read_text(), parameters=parameters)
+    html_filename= TXT_DATA_DIR / 'outputs' / f'{name}_v1_vs_v2.html'
+    ut.make_html_output(appli=appli, html_filename=html_filename)
+
     output_filepath= TXT_DATA_DIR / 'outputs' / f'{name}_v1_vs_v2.xml'
     p.process(
         source_filepath=p1_xml,

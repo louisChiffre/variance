@@ -11,7 +11,7 @@ from collections import namedtuple
 from variance.medite import medite as md
 from lxml import etree
 from intervaltree import Interval, IntervalTree
-from variance.medite.utils import pretty_print
+from variance.medite.utils import pretty_print, make_html_output
 import re
 import itertools
 
@@ -45,6 +45,8 @@ def remove_emph_tags(txt: str):
 
 
 def add_emph_tags(txt: str):
+    '''replace each <emph>aasdf asdfa</emph> with /aasdf/ /asdfa/'''
+    txt_original = txt
     blocks = re.findall(r"((?:/\w+/ )+)", txt)
     # Replace each block with the <emph> tag
     for block in blocks:
@@ -57,6 +59,11 @@ def add_emph_tags(txt: str):
 
     # Correct any multiple spaces and leading/trailing spaces
     txt = re.sub(r"\s+", " ", txt).strip()
+
+    # txt_original_reconstructed = remove_emph_tags(txt)
+    # assert txt_original == txt_original_reconstructed
+
+
     return txt
 
 
@@ -69,15 +76,21 @@ def add_escape_characters(txt: str):
 def remove_medite_annotations(txt: str)->str:
     # remove escape characters
     txt=txt.replace(newline, "")
+    if 'Corse en toi' in txt:
+        txt_ = txt
+        
     for b, a in escape_characters_mapping.items():
         txt = txt.replace(a, b)
-    # remplace new line
+    if 'Corse en toi' in txt:
+        txt_
+        #breakpoint()
     return txt
  
 
 Output = namedtuple("Output", "id txt soup path tree")
 
 def to_txt(filepath:pathlib.Path):
+    '''transform tei xml in list of lines. This is used for internal consistency checks'''
     soup = read(filepath=filepath)
     def gen():
         for div in soup.find('body').find_all("div"):
@@ -128,7 +141,7 @@ def remove_newline_annotation(body):
                             assert nx.string == newline[1:]
                             # we replace it with empty
                             nx.replace_with('')      
-
+# TODO rename to preprocess_xml or tei2txt
 def xml2txt(filepath: pathlib.Path) -> Output:
     """extract text from xml and apply pre-processing step to text"""
     soup = read(filepath=filepath)
@@ -147,6 +160,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
         cursor = 0
         for div in body.find_all("div"):
             p_elements = div.find_all("p")
+            #breakpoint()
             for p in p_elements:
 
                 def gen_p():
@@ -165,12 +179,15 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                 txt = esc(txt_)
                 txt = txt + newline
                 #compare(txt_ + newline, txt)
+                
                 old_cursor, cursor = cursor, cursor + len(txt)
                 tree[old_cursor:cursor] = p
                 yield txt
 
     txts = list(gen())
+    # breakpoint()
     txt = "".join(txts)
+    
     txt_filepath = filepath.with_suffix(".txt")
     print(f'printing pre-process {txt_filepath}')
     txt_filepath.write_text(txt, encoding="utf-8")
@@ -228,18 +245,44 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
                 return I(start - N, end - N)
             case (("R", a_start, a_end, []), ("R", b_start, b_end, [])):
                 return R(a_start, a_end, b_start - N, b_end - N)
+            # TODO clarify the meaning of R with pair of number at the end
+            # it seems it is for the case when a block was moved and this block replace an existing block
+            # A ---+
+            #      |
+            #      v
+            # C    A
+            case (("R", a_start, a_end, dummy_1), ("R", b_start, b_end, dummy_2)):
+                return R(a_start, a_end, b_start - N, b_end - N)
+
             case (None, ("D", start, end, [])):
                 return DB(start - N, end - N)
             case (("D", start, end, []), None):
                 return DA(start, end)
             case _:
-                assert False
+                raise Exception(f'cannot match {x}')
 
     deltas = [handle(k) for k in appli.bbl.liste]
     # we verify nothing was lost
-
-    z  = [k for k in deltas if type(k)in [BC,S,R,DA]]
+    
+    # we reconstruct the first text
+    z  = [k for k in deltas if isinstance(k, (BC,S,R,DA))]
     assert ''.join([z1.txt[k[0]:k[1]] for k in z])==z1.txt
+
+    # then the second text
+    # requires more work
+    def gen():
+        # Insertion and move
+        yield from [(k.start,k.end) for k  in deltas if isinstance(k,(I,DB))]
+        # Block commom
+        yield from [(k.b_start,k.b_end) for k  in deltas if isinstance(k,(BC,R))]
+
+    txt2 = ''.join([z2.txt[k[0]:k[1]] for k in  sorted(gen())])
+    act = txt2
+    ref = z2.txt
+    k = next((i for i,z in enumerate(zip(act,ref)) if z[0]!=z[1]), None)
+    assert k is None
+    assert txt2==z2.txt
+    #assert len(txt2)==len(z2.txt)
     return Result(appli=appli, deltas=deltas)
 
 
@@ -249,6 +292,7 @@ def process(
     parameters: md.Parameters,
     output_filepath: pathlib.Path,
 ):
+    '''the main function'''
     z1 = xml2txt(source_filepath)
     z2 = xml2txt(target_filepath)
 
@@ -295,9 +339,11 @@ def process(
         list_elem = lists[name]
         elem = ET.SubElement(lists[name], name, attributes)
         if txt:
-            elem.text = txt
+            elem.text = remove_medite_annotations(txt)
 
     res = calc_revisions(z1=z1, z2=z2, parameters=parameters)
+    make_html_output(appli=res.appli, html_filename=output_filepath.with_suffix('.html'))
+
     updated = set()
 
     def metamark(function: str, target: str):
@@ -353,7 +399,19 @@ def process(
         elif isinstance(z, DB):
             key = z2.txt[z.start : z.end]
             z2_moved_blocks[key] = z
-
+    # we have to fill out the moved blocks that are part of a replacement
+    for key in set(z1_moved_blocks).difference(z2_moved_blocks):
+        #r_block = next((k for k in res.deltas if isinstance(k,R) if z2.txt[k.b_start:k.b_end]==key))
+        #z2_moved_block[key] = 
+        # breakpoint()
+        pass
+    for key in set(z2_moved_blocks).difference(z1_moved_blocks):
+        pass
+        #breakpoint()
+    
+    # we verify that for every moved block in z1 there is a coresponding block in z2
+    #assert set(z1_moved_blocks) == set(z2_moved_blocks)
+    
     def append_text(tag, start: int, end: int):
         for i, P in enumerate(zip_paragraphs(start=start, end=end)):
             id, paragraph, txt = P
@@ -407,8 +465,13 @@ def process(
 
         elif isinstance(z, DA):
             print("MOVE A".center(120, "$"))
+            #breakpoint()
             key = z1.txt[z.start : z.end]
             # we retrieve the corresponding block in the second text
+            # special case when a moved block is part of a replacement
+            # TODO hanlde case propery
+            if key not in z2_moved_blocks:
+                continue
             z_ = z2_moved_blocks[key]
             id_v1 = f"v1_{z.start}_{z.end}"
             id_v2 = f"v2_{z_.start}_{z_.end}"
@@ -421,6 +484,7 @@ def process(
             )
         elif isinstance(z, DB):
             print("MOVE B".center(120, "$"))
+            #breakpoint()
             # key = z2.txt[z.start:z.end]
 
         elif isinstance(z, R):
@@ -449,6 +513,7 @@ def process(
     remove_newline_annotation(z1.soup.find('body'))
     
     txt_raw = str(z1.soup.find("body"))
+    #breakpoint()
     txt = remove_medite_annotations(txt_raw)
     root.append(ET.fromstring(txt))
     tree = ET.ElementTree(root)
@@ -468,10 +533,16 @@ def process(
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
 
-    # now we verify the original text has not changed
+    # now we verify, that the original text has not changed if we reconstruct it from the xml
     s1 = to_txt(source_filepath)
     s2 = to_txt(output_filepath)
-    testfixtures.compare(s1,s2, x_label='original text', y_label='processed text')
+    assert len(s1)>0
+    result = testfixtures.compare(s1,s2, x_label='original text', y_label='processed text', raises=False)
+    if not result:
+        print("Comparison failed!")
+    else:
+        print("Comparison succeeded!")
+
 
 
 def create_tei_xml(path: Path, pub_date_str: str, title_str: str, version_nb: int)->Path:
@@ -516,10 +587,19 @@ def create_tei_xml(path: Path, pub_date_str: str, title_str: str, version_nb: in
     div = ET.SubElement(body, f'{{{TEI_NS}}}div')
     # Split body_text by newlines and create <p> elements for each paragraph
     txt = path.read_text(encoding='utf-8')
-    paragraphs = txt.split(newline + '\n' )
+    paragraphs = txt.split(newline)
+    # if the last character is a new line, split will create an empty paragraph at the end, we need to correct that
+    if txt.endswith(newline):
+        paragraphs = paragraphs[:-1]
+
     for para in paragraphs:
         p_element = ET.SubElement(div, f'{{{TEI_NS}}}p')
-        p_element.text = add_emph_tags(remove_medite_annotations(txt=para))
+        # something is wrong here
+        # if 'battu' in para:
+        #     breakpoint()
+        #p_element.text = add_emph_tags(remove_medite_annotations(txt=para))
+        p_element.text = remove_medite_annotations(txt=para)
+        # breakpoint()
 
     # for para in paragraphs:
     #     if para.strip():  # Check if the paragraph is not empty

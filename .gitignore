@@ -77,3 +77,4 @@ dmypy.json.5
 *.swp
 *.swo
 *~
+tests/data/samples/post_processing/outputs

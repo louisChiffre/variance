@@ -70,7 +70,7 @@ def run(
 
     click.echo("calculating differences".format(**locals()))
     appli = md.DiffTexts(chaine1=txt1, chaine2=txt2, parameters=parameters)
-    ut.make_html_output(appli=appli, html_filename=join(base_dir, output_html))
+    ut.make_html_otuput(appli=appli, html_filename=join(base_dir, output_html))
     output_path = join(base_dir, output_xml)
     ut.make_xml_output(
         appli=appli,
