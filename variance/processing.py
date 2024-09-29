@@ -212,7 +212,9 @@ def xml2txt(filepath: pathlib.Path) -> Output:
 
     # we store the txt file in txt
     txt_filepath = filepath.with_suffix(".txt")
-    logger.info(f"printing pre-process {txt_filepath}")
+    logger.info(
+        f"tei file {filepath} transformed to plain text file with medite annotation {txt_filepath}"
+    )
     txt_filepath.write_text(txt, encoding="utf-8")
 
     # the output of the function contains the txt, but also the original xml document and the character to paragraph mapping
@@ -306,6 +308,7 @@ def process(
 ):
     """the main function"""
     # we transform the xml in text with medite annotations
+    logger.info(f"process {str(source_filepath)=} {str(target_filepath)=}")
     z1 = xml2txt(source_filepath)
     z2 = xml2txt(target_filepath)
 
@@ -349,7 +352,9 @@ def process(
     }
 
     # execute medite
+    logger.info("calculate differences")
     res = calc_revisions(z1=z1, z2=z2, parameters=parameters)
+    logger.info("generate TEI file")
 
     # we create the html for debugging/verification purpose purpose
     make_html_output(
@@ -556,7 +561,7 @@ def process(
     processing_instruction = '<?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0" ?>\n'
     pretty_xml_str = processing_instruction + pretty_xml_str.lstrip()
     # Write to file
-
+    logger.info(f"Write output to {str(output_filepath)}")
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
 
