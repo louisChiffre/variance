@@ -121,9 +121,11 @@ def gen_samples():
             txt = path.read_text()
             yield pytest.param(txt, marks=pytest.mark.xfail)
 
+
 def find_first_divergence(act, ref):
     k = next((i for i, z in enumerate(zip(act, ref)) if z[0] != z[1]), None)
     return k
+
 
 @pytest.mark.parametrize(
     "txt",
@@ -142,14 +144,20 @@ def test_create_tei_xml(txt, temp_file):
 
     txt_ = xml2txt(xml_path).txt
 
-
-    result = testfixtures.compare(txt, txt_, x_label="original text", y_label="processed text", raises=False)
+    result = testfixtures.compare(
+        txt, txt_, x_label="original text", y_label="processed text", raises=False
+    )
     # if there is a problem, we want to examine only the first difference
     if result:
         N = 20
         idx = find_first_divergence(act=txt_, ref=txt)
-        result = testfixtures.compare(txt[idx-N:idx+N], txt_[idx-N:idx+N], x_label="original text", y_label="processed text", raises=True)
-
+        result = testfixtures.compare(
+            txt[idx - N : idx + N],
+            txt_[idx - N : idx + N],
+            x_label="original text",
+            y_label="processed text",
+            raises=True,
+        )
 
 
 @pytest.mark.parametrize(
@@ -195,7 +203,7 @@ def test_post_processing(name, title):
 
     # we transform first the the txt in tei xml
     # to verify create_tei_xml works, we check that the reverse operation returns to the original text
-    def make_xml_and_check_invariance(path, version_nb)->Path:
+    def make_xml_and_check_invariance(path, version_nb) -> Path:
         path_xml = p.create_tei_xml(
             path=path, pub_date_str=pub_date_str, title_str=title, version_nb=version_nb
         )
@@ -211,9 +219,8 @@ def test_post_processing(name, title):
     p2_xml = make_xml_and_check_invariance(path=p2, version_nb=1)
 
     # there is a bug in to_txt
-    z =[ k for k in  p.to_txt(p1_xml) if k]
+    z = [k for k in p.to_txt(p1_xml) if k]
     assert z
-    
 
     appli = md.DiffTexts(
         chaine1=p1.read_text(), chaine2=p2.read_text(), parameters=parameters

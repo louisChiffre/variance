@@ -14,7 +14,8 @@ from intervaltree import Interval, IntervalTree
 from variance.medite.utils import pretty_print, make_html_output
 import re
 import itertools
-import logging 
+import logging
+
 logger = logging.getLogger(__name__)
 
 
@@ -44,11 +45,12 @@ def read(filepath: pathlib.Path):
 def remove_emph_tags(input_text):
     def replace_emph(match):
         words = match.group(1).split()
-        return ' '.join(f'/{word}/' for word in words)
+        return " ".join(f"/{word}/" for word in words)
 
     # Replace <emph> tags with formatted words
-    transformed_text = re.sub(r'<emph>(.*?)</emph>', replace_emph, input_text)
+    transformed_text = re.sub(r"<emph>(.*?)</emph>", replace_emph, input_text)
     return transformed_text
+
 
 def add_emph_tags(txt: str):
     """replace each <emph>aasdf asdfa</emph> with /aasdf/ /asdfa/"""
@@ -104,6 +106,7 @@ def to_txt(filepath: pathlib.Path):
         for div in soup.find("body").find_all("div"):
             p_elements = div.find_all("p")
             for p in p_elements:
+
                 def gen_p():
                     for content in p.contents:
                         if content.name == "emph":
@@ -116,6 +119,7 @@ def to_txt(filepath: pathlib.Path):
                             pass
                             # raise Exception('Unknown type of content')
                     yield "\n"
+
                 txt = "".join(gen_p())
                 yield txt
 
@@ -165,7 +169,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
     # ...
     # this will be important when we transform back the medite output to tei
     tree = IntervalTree()
-    
+
     # Find all <p> elements
     body = soup.find("body")
     # Add unique IDs to each element
@@ -181,7 +185,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
             for p in p_elements:
                 # for each paragraph, we construct the text
                 def gen_p():
-                    # if there 
+                    # if there
                     for content in p.contents:
                         if content.name == "emph":
                             # TODO verify there is no escape character to be done here
@@ -237,6 +241,7 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
     # we then retrieve the detlas in a structure that will allow us to construct the TEI xml
     def t2n(x):
         return [Block(*k) for k in x]
+
     N = len(z1.txt)
 
     def handle(x):
@@ -267,7 +272,7 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
                 raise Exception(f"cannot match {x}")
 
     deltas = [handle(k) for k in appli.bbl.liste]
-    
+
     # we verify we can reconstruct the two texts from the deltas
 
     # we reconstruct the first text
@@ -343,7 +348,6 @@ def process(
         "substitution": ET.SubElement(medite_data, "listSubstitution"),
     }
 
-
     # execute medite
     res = calc_revisions(z1=z1, z2=z2, parameters=parameters)
 
@@ -357,18 +361,18 @@ def process(
 
     # there is a series of utility functions
     def add_list(txt, attributes, name):
-        '''add change to list of change for the list tags of mediteData'''
+        """add change to list of change for the list tags of mediteData"""
         list_elem = lists[name]
         elem = ET.SubElement(lists[name], name, attributes)
         if txt:
             elem.text = remove_medite_annotations(txt)
 
     def metamark(function: str, target: str):
-        '''creates a metamark'''
+        """creates a metamark"""
         return z1.soup.new_tag("metamark", function=function, target=target)
 
     def zip_paragraphs(start: int, end: int):
-        '''given a charactr range, returns the associated paragraphs and texts'''
+        """given a charactr range, returns the associated paragraphs and texts"""
         txt = z1.txt[start:end]
         # para_txts_ = [k for k in txt.split(newline)]
 
@@ -401,7 +405,7 @@ def process(
     paragraph_stack = [sorted(z1.tree, key=lambda x: x.begin)[0].data]
 
     def reset_paragraph(id, zp):
-        #print(updated)
+        # print(updated)
         if not id in updated:
             logger.debug(f"resetting paragraph {id} \n{zp}\n")
             zp.string = ""
@@ -422,7 +426,6 @@ def process(
             key = z2.txt[z.start : z.end]
             z2_moved_blocks[key] = z
 
-
     # we have to fill out the moved blocks that are part of a replacement
     # not implemented yet as we need clarification
     # TODO clarify and implement
@@ -439,7 +442,7 @@ def process(
     # assert set(z1_moved_blocks) == set(z2_moved_blocks)
 
     def append_text(tag, start: int, end: int):
-        '''create xml data for a character range of the text'''
+        """create xml data for a character range of the text"""
         # character range can cross several paragraphs
         for i, P in enumerate(zip_paragraphs(start=start, end=end)):
             id, paragraph, txt = P
@@ -566,8 +569,6 @@ def process(
     result = testfixtures.compare(
         s1, s2, x_label="original text", y_label="processed text", raises=False
     )
-
-
 
 
 def create_tei_xml(
