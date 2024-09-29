@@ -41,9 +41,14 @@ def read(filepath: pathlib.Path):
     return soup
 
 
-def remove_emph_tags(txt: str):
-    return " ".join([f"/{k}/" for k in txt.split(" ")])
+def remove_emph_tags(input_text):
+    def replace_emph(match):
+        words = match.group(1).split()
+        return ' '.join(f'/{word}/' for word in words)
 
+    # Replace <emph> tags with formatted words
+    transformed_text = re.sub(r'<emph>(.*?)</emph>', replace_emph, input_text)
+    return transformed_text
 
 def add_emph_tags(txt: str):
     """replace each <emph>aasdf asdfa</emph> with /aasdf/ /asdfa/"""
@@ -61,8 +66,9 @@ def add_emph_tags(txt: str):
     # Correct any multiple spaces and leading/trailing spaces
     txt = re.sub(r"\s+", " ", txt).strip()
 
-    # txt_original_reconstructed = remove_emph_tags(txt)
-    # assert txt_original == txt_original_reconstructed
+    # we verify that if we remove the emph tags, we have the original string
+    txt_original_reconstructed = remove_emph_tags(txt)
+    assert txt_original == txt_original_reconstructed
 
     return txt
 
