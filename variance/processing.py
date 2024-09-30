@@ -490,7 +490,7 @@ def process(
         elif isinstance(z, I):
             logger.debug("INSERTION".center(120, "$"))
             target_id = f"v2_{z.start}_{z.end}"
-            tag = metamark(function="ins", target=target_id)
+            tag = metamark(function="add", target=target_id)
             current_paragraph = paragraph_stack[-1]
             reset_paragraph(id=current_paragraph["id"], zp=current_paragraph)
             append_tag(tag=tag, zp=current_paragraph)
@@ -525,7 +525,7 @@ def process(
             id_v1 = f"v1_{z.a_start}_{z.a_end}"
             id_v2 = f"v2_{z.b_start}_{z.b_end}"
             tag = z1.soup.new_tag(
-                "metamark", function="rempl", target=id_v1, corresp=id_v2
+                "metamark", function="subst", target=id_v1, corresp=id_v2
             )
             append_text(tag=tag, start=z.a_start, end=z.a_end)
             add_list(
