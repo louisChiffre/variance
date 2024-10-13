@@ -78,4 +78,4 @@ dmypy.json.5
 *.swo
 *~
 tests/data/samples/post_processing/outputs
-*.txt
+

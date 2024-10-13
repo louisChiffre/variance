@@ -74,18 +74,22 @@ import functools
     "txt,expected",
     [
         (
-            "rovinces de France /plus/ /ou/ /moins/ de /chevaliers/ /de/ /Valois/ il en existait",
-            "rovinces de France <emph>plus ou moins</emph> de <emph>chevaliers de Valois</emph> il en existait",
+            "rovinces de France \plus ou moins de chevaliers de Valois\ il en existait",
+            "rovinces de France <emph>plus ou moins de chevaliers de Valois</emph> il en existait",
         ),
         (
-            "rovinces de France /plus/ /ou/ /moins/ /de/ /chevaliers/ /de/ /Valois/ il en existait",
-            "rovinces de France <emph>plus ou moins de chevaliers de Valois</emph> il en existait",
+            "rovinces de France \plus ou moins\ de \chevaliers de Valois\ il en existait",
+            "rovinces de France <emph>plus ou moins</emph> de <emph>chevaliers de Valois</emph> il en existait",
         ),
     ],
 )
 def test_add_emp_tags(txt, expected):
     actual = p.add_emph_tags(txt)
-    assert actual == expected
+    testfixtures.compare(actual, expected)
+
+    # check invariance: if we add the emph tags and remove them, we should get the starting string
+    txt_ = p.remove_emph_tags(actual)
+    testfixtures.compare(txt_, txt)
 
 
 def copy_first_n_lines(src, dst, n):

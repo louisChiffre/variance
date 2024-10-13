@@ -43,36 +43,13 @@ def read(filepath: pathlib.Path):
 
 
 def remove_emph_tags(input_text):
-    def replace_emph(match):
-        words = match.group(1).split()
-        return " ".join(f"/{word}/" for word in words)
-
-    # Replace <emph> tags with formatted words
-    transformed_text = re.sub(r"<emph>(.*?)</emph>", replace_emph, input_text)
-    return transformed_text
+    return re.sub(r"<emph>(.*?)</emph>", r"\\\1\\", input_text)
 
 
 def add_emph_tags(txt: str):
-    """replace each <emph>aasdf asdfa</emph> with /aasdf/ /asdfa/"""
-    txt_original = txt
-    blocks = re.findall(r"((?:/\w+/ )+)", txt)
-    # Replace each block with the <emph> tag
-    for block in blocks:
-        words = re.findall(r"/(\w+)/", block)
-        emph_text = "<emph>" + " ".join(words) + "</emph>"
-        txt = txt.replace(block, emph_text + " ")
-
-    # Ensure that any remaining words surrounded by / are handled
-    txt = re.sub(r"/(\w+)/", r"<emph>\1</emph>", txt)
-
-    # Correct any multiple spaces and leading/trailing spaces
-    txt = re.sub(r"\s+", " ", txt).strip()
-
-    # we verify that if we remove the emph tags, we have the original string
-    txt_original_reconstructed = remove_emph_tags(txt)
-    assert txt_original == txt_original_reconstructed
-
-    return txt
+    """replace text surrounded by backslash with <emph> tags"""
+    # txt_original = txt
+    return re.sub(r"\\(.*?)\\", r"<emph>\1</emph>", txt)
 
 
 def add_escape_characters(txt: str):
@@ -188,8 +165,9 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                     # if there
                     for content in p.contents:
                         if content.name == "emph":
+                            yield f"\\{content.get_text()}\\"
                             # TODO verify there is no escape character to be done here
-                            yield remove_emph_tags(content.get_text())
+
                         elif isinstance(content, str):
                             yield content
                         elif content.name is None and content.string:
@@ -211,7 +189,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
     txt = "".join(txts)
 
     # we store the txt file in txt
-    txt_filepath = filepath.with_suffix(".txt")
+    txt_filepath = filepath.with_suffix(".medite.txt")
     logger.info(
         f"tei file {filepath} transformed to plain text file with medite annotation {txt_filepath}"
     )
@@ -460,12 +438,13 @@ def process(
             paragraph_stack.append(zp)
             # breakpoint()
             zp.append(txt)
+
     # we need to keep track of the moves
 
-    txt2delta =  {z1.txt[k.start:k.end]:k for k in res.deltas if isinstance(k, DA)}
+    txt2delta = {z1.txt[k.start : k.end]: k for k in res.deltas if isinstance(k, DA)}
 
     # let's go through the deltas
-    for i,z in enumerate(res.deltas):
+    for i, z in enumerate(res.deltas):
         # each type of change require a different handling
         if isinstance(z, BC):
             logger.debug("BLOC COMMUN".center(120, "$"))
@@ -525,8 +504,8 @@ def process(
         elif isinstance(z, DB):
             logger.debug("MOVE B".center(120, "$"))
             # we retrieve the reference to the moved fragment
-            txt = z2.txt[z.start:z.end]
-            assert txt in txt2delta, f'Cannot find a delta matching with {txt=}'
+            txt = z2.txt[z.start : z.end]
+            assert txt in txt2delta, f"Cannot find a delta matching with {txt=}"
             z_ = txt2delta[txt]
             id_v1 = f"v1_{z_.start}_{z_.end}"
             current_paragraph = paragraph_stack[-1]
@@ -572,8 +551,9 @@ def process(
     pretty_xml_str = etree.tostring(xml_tree, pretty_print=True, encoding="unicode")
 
     processing_instruction = '<?xml-model href="http://www.tei-c.org/release/xml/tei/custom/schema/relaxng/tei_all.rng" type="application/xml" schematypens="http://relaxng.org/ns/structure/1.0" ?>\n'
-    pretty_xml_str = processing_instruction + pretty_xml_str.lstrip()
+    pretty_xml_str = add_emph_tags(processing_instruction + pretty_xml_str.lstrip())
     # Write to file
+
     logger.info(f"Write output to {str(output_filepath)}")
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
@@ -640,12 +620,9 @@ def create_tei_xml(
 
     for para in paragraphs:
         p_element = ET.SubElement(div, f"{{{TEI_NS}}}p")
-        # something is wrong here
-        # if 'battu' in para:
-        #     breakpoint()
-        # p_element.text = add_emph_tags(remove_medite_annotations(txt=para))
-        p_element.text = remove_medite_annotations(txt=para)
-        # breakpoint()
+        txt = remove_medite_annotations(txt=para)
+
+        p_element.text = remove_medite_annotations(txt=txt)
 
     # for para in paragraphs:
     #     if para.strip():  # Check if the paragraph is not empty
@@ -656,7 +633,7 @@ def create_tei_xml(
 
     # Pretty print using minidom
     reparsed = minidom.parseString(rough_string)
-    pretty_xml = reparsed.toprettyxml(indent="  ")
+    pretty_xml = add_emph_tags(reparsed.toprettyxml(indent="  "))
 
     # Write the pretty-printed XML to a file
     output_path = path.with_suffix(".xml")
