@@ -1,4 +1,5 @@
 import pandas as pd
+import pathlib
 import shutil
 import json
 import xml.etree.ElementTree as ET
@@ -78,6 +79,8 @@ B_VERSION = "version"
 B_ETAT = "etat"
 B_ID = "id"
 
+ASSETS_DIRECTORY = join(dirname(dirname(os.path.dirname(__file__))), "assets")
+assert os.path.exists(ASSETS_DIRECTORY)
 
 def prettify(elem):
     rough_string = ET.tostring(elem, encoding="utf-8")
@@ -217,7 +220,7 @@ def make_xml_output(
 # python -m nltk.downloader -d Users/laurentmauron/nltk_data all
 # and added to the github repo
 os.environ["NLTK_DATA"] = os.path.join(
-    os.path.join(os.path.dirname(os.path.dirname(__file__)), "assets"), "nltk_data"
+    ASSETS_DIRECTORY, "nltk_data"
 )
 from nltk.tokenize.punkt import PunktSentenceTokenizer
 from nltk.tokenize import sent_tokenize, word_tokenize
@@ -372,7 +375,7 @@ var insertions_txt = {insertions_txt};
     with io.open(javascript_filename, "w", encoding="utf8") as o:
         o.write(str(txt))
 
-    assets_directory = join(dirname(os.path.dirname(__file__)), "assets")
+    assets_directory = ASSETS_DIRECTORY
     print((("source assets directory is {assets_directory}").format(**locals())))
 
     # copying base template

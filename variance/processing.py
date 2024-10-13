@@ -11,7 +11,7 @@ from collections import namedtuple
 from variance.medite import medite as md
 from lxml import etree
 from intervaltree import Interval, IntervalTree
-from variance.medite.utils import pretty_print, make_html_output
+from variance.medite.utils import pretty_print, make_html_output, make_javascript_output
 import re
 import itertools
 import logging
@@ -335,9 +335,13 @@ def process(
     logger.info("generate TEI file")
 
     # we create the html for debugging/verification purpose purpose
+    html_output_filename = output_filepath.with_suffix(".html")
+    logger.info(f'generating classic html output {html_output_filename}')
     make_html_output(
-        appli=res.appli, html_filename=output_filepath.with_suffix(".html")
+        appli=res.appli, html_filename=html_output_filename
     )
+
+    make_javascript_output(appli=res.appli, base_dir=source_filepath.parent)
 
     # populate the xml
     updated = set()
