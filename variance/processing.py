@@ -460,9 +460,12 @@ def process(
             paragraph_stack.append(zp)
             # breakpoint()
             zp.append(txt)
+    # we need to keep track of the moves
+
+    txt2delta =  {z1.txt[k.start:k.end]:k for k in res.deltas if isinstance(k, DA)}
 
     # let's go through the deltas
-    for z in res.deltas:
+    for i,z in enumerate(res.deltas):
         # each type of change require a different handling
         if isinstance(z, BC):
             logger.debug("BLOC COMMUN".center(120, "$"))
@@ -521,6 +524,16 @@ def process(
             )
         elif isinstance(z, DB):
             logger.debug("MOVE B".center(120, "$"))
+            # we retrieve the reference to the moved fragment
+            txt = z2.txt[z.start:z.end]
+            assert txt in txt2delta, f'Cannot find a delta matching with {txt=}'
+            z_ = txt2delta[txt]
+            id_v1 = f"v1_{z_.start}_{z_.end}"
+            current_paragraph = paragraph_stack[-1]
+            tag = metamark(function="trans", target=id_v1)
+            # not sure we have to do it
+            # reset_paragraph(id=current_paragraph["id"], zp=current_paragraph)
+            append_tag(tag=tag, zp=current_paragraph)
         elif isinstance(z, R):
             id_v1 = f"v1_{z.a_start}_{z.a_end}"
             id_v2 = f"v2_{z.b_start}_{z.b_end}"
