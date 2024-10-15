@@ -341,7 +341,12 @@ def process(
         appli=res.appli, html_filename=html_output_filename
     )
 
-    make_javascript_output(appli=res.appli, base_dir=source_filepath.parent)
+    # we don't want the script to stop if there is an ntld data issue 
+    try:
+        make_javascript_output(appli=res.appli, base_dir=source_filepath.parent)
+    except Exception as e:
+        print(f"Could not generate javascript output {e}")
+
 
     # populate the xml
     updated = set()
