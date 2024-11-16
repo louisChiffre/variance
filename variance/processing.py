@@ -1,20 +1,21 @@
-from itertools import zip_longest
-import pathlib
-import xml.dom.minidom as minidom
-from pathlib import Path
-import xml.etree.ElementTree as ET
-import testfixtures
-
-from bs4 import BeautifulSoup
-import bs4
-from collections import namedtuple
-from variance.medite import medite as md
-from lxml import etree
-from intervaltree import Interval, IntervalTree
-from variance.medite.utils import pretty_print, make_html_output, make_javascript_output
-import re
 import itertools
 import logging
+import pathlib
+import re
+import xml.dom.minidom as minidom
+import xml.etree.ElementTree as ET
+from collections import namedtuple
+from itertools import zip_longest
+from pathlib import Path
+
+import bs4
+import testfixtures
+from bs4 import BeautifulSoup
+from intervaltree import Interval, IntervalTree
+from lxml import etree
+
+from variance.medite import medite as md
+from variance.medite.utils import make_html_output, make_javascript_output, pretty_print
 
 logger = logging.getLogger(__name__)
 
@@ -61,14 +62,10 @@ def add_escape_characters(txt: str):
 def remove_medite_annotations(txt: str) -> str:
     # remove escape characters
     txt = txt.replace(newline, "")
-    if "Corse en toi" in txt:
-        txt_ = txt
 
     for b, a in escape_characters_mapping.items():
         txt = txt.replace(a, b)
-    if "Corse en toi" in txt:
-        txt_
-        # breakpoint()
+
     return txt
 
 
@@ -140,11 +137,12 @@ def xml2txt(filepath: pathlib.Path) -> Output:
     """extract text from xml and apply pre-processing step to text"""
     soup = read(filepath=filepath)
 
-    # we keep track where each paragraph
+    # we keep track of the character range of each paragraph
     # 0-51   -- paragraph 1
     # 52-108 -- paragramp 2
     # ...
     # this will be important when we transform back the medite output to tei
+    # we use an interval tree to keep track of the mapping
     tree = IntervalTree()
 
     # Find all <p> elements
@@ -167,7 +165,6 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                         if content.name == "emph":
                             yield f"\\{content.get_text()}\\"
                             # TODO verify there is no escape character to be done here
-
                         elif isinstance(content, str):
                             yield content
                         elif content.name is None and content.string:
@@ -181,7 +178,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
 
                 # we then update the mapping character range -> paragraph
                 old_cursor, cursor = cursor, cursor + len(txt)
-                # we need to keep track
+                # store the character range of the paragraphO
                 tree[old_cursor:cursor] = p
                 yield txt
 
@@ -278,6 +275,24 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
     return Result(appli=appli, deltas=deltas)
 
 
+def process(
+    source_filepath: pathlib.Path,
+    target_filepath: pathlib.Path,
+    parameters: md.Parameters,
+    output_filepath: pathlib.Path,
+):
+    """Compare two TEI XML files and generate a new TEI XML file describing the changes between the two versions.
+
+    Args:
+        source_filepath (pathlib.Path): The path to the source TEI XML file.
+        target_filepath (pathlib.Path): The path to the target TEI XML file.
+        parameters (md.Parameters): The parameters for the comparison.
+        output_filepath (pathlib.Path): The path to save the output TEI XML file.
+
+    Returns:
+        None
+    """
+    # Rest of the code...
 def process(
     source_filepath: pathlib.Path,
     target_filepath: pathlib.Path,
