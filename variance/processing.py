@@ -470,11 +470,15 @@ def process(
             append_text(tag=tag, start=z.start, end=z.end)
             txt = z1.txt[z.start : z.end]
             if txt.strip() == "":
-                add_list(txt=" ", attributes={"type": "paragraphe"}, name="deletion")
+                add_list(
+                    txt=" ",
+                    attributes={"type": "paragraphe", "corresp": target_id},
+                    name="deletion",
+                )
             else:
                 add_list(
                     txt=txt,
-                    attributes=dict(corresp=target_id),
+                    attributes={"corresp": target_id},
                     name="deletion",
                 )
 
