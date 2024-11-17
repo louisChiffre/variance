@@ -65,6 +65,11 @@ def run(
     source_filepath = pathlib.Path(source_filename)
     target_filepath = pathlib.Path(target_filename)
 
+    if source_filepath.suffix != ".xml":
+        raise ValueError('source file must be a ".xml" file')
+    if target_filepath.suffix != ".xml":
+        raise ValueError('target file must be a ".xml" file')
+
     if source_filepath.suffix == ".txt":
         logger.info("creating TEI file from txt files")
         pub_date_str = "unknown"
@@ -82,8 +87,6 @@ def run(
             version_nb=2,
         )
 
-    assert source_filepath.suffix == ".xml"
-    assert target_filepath.suffix == ".xml"
     p.process(
         source_filepath=source_filepath,
         target_filepath=target_filepath,

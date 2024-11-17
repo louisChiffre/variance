@@ -40,15 +40,16 @@ Utilisez le script `diff.py` pour générer des différences entre des fichiers 
 python scripts/diff.py tests/data/samples/exemple_variance/la_vieille_fille_v1.xml tests/data/samples/exemple_variance/la_vieille_fille_v2.xml --lg_pivot 7 --ratio 15 --seuil 50 --case-sensitive --diacri-sensitive --output-xml test.xml
 ```
 
-### Générer des Différences à partir de Fichiers Texte
-Le script `diff.py` peut également être utilisé pour trouver des différences entre des fichiers texte simples :
-```bash
-python scripts/diff.py tests/data/samples/post_processing/1vf.txt tests/data/samples/post_processing/2vf.txt --lg_pivot 7 --ratio 15 --seuil 50 --case-sensitive --diacri-sensitive --output-xml vf_v1_v2.xml
-```
-
 ## Options Supplémentaires
 - `--lg_pivot` : Définir la longueur pivot pour la comparaison.
 - `--ratio` : Définir le seuil de ratio pour les différences.
 - `--seuil` : Définir le seuil de signification minimale des différences.
 - `--case-sensitive` : Effectuer une comparaison sensible à la casse.
 - `--diacri-sensitive` : Tenir compte des diacritiques lors de la comparaison.
+
+### Transformer fichier plat txt en fichier TEI XML
+Utile pour effectuer des tests avec des anciens fichiers Medite
+```bash
+python scripts/txt2tei.py tests/data/LaVendetta/1vndtt.txt
+```
+
