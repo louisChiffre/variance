@@ -37,7 +37,7 @@ poetry shell
 ### Générer des Différences à partir de Fichiers TEI XML
 Utilisez le script `diff.py` pour générer des différences entre des fichiers TEI XML :
 ```bash
-python scripts/diff.py tests/data/samples/exemple_variance/la_vieille_fille_v1.xml tests/data/samples/exemple_variance/la_vieille_fille_v2.xml --lg_pivot 7 --ratio 15 --seuil 50 --case-sensitive --diacri-sensitive --output-xml test.xml
+python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFille/2vf.xml --lg_pivot 7 --ratio 15 --seuil 50 --case-sensitive --diacri-sensitive --output-xml test.xml
 ```
 
 ## Options Supplémentaires

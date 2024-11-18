@@ -7,12 +7,14 @@ import xml.etree.ElementTree as ET
 from collections import namedtuple
 from itertools import zip_longest
 from pathlib import Path
-
+import itertools
 import bs4
 import testfixtures
 from bs4 import BeautifulSoup
 from intervaltree import Interval, IntervalTree
 from lxml import etree
+from enum import Enum
+import copy
 
 from variance.medite import medite as md
 from variance.medite.utils import make_html_output, make_javascript_output, pretty_print
@@ -26,16 +28,70 @@ for prefix, uri in namespaces.items():
     ET.register_namespace(prefix, uri)
 
 esc = "'"
-
+# we keep track of the escape characters
+medite_special_characters = [esc,  '|']
 escape_characters_mapping = {
     "…": "'…",
     ".": "'.",
-    # ".": "XXXXXXXXXXXXXXXXXXXXXXXXXX",
     "»": "'»",
     "«": "«'",
 }
 newline = """'|""" + "\n"
 
+
+# TODO rename function to remove_medite_annotations
+def remove_medite_annotations_simple(txt: str) -> str:
+    txt = txt.replace(newline, "")
+    # we remove the newline first as they are replace with <p> tags
+
+    # we remove first the escape characters
+    for b, a in escape_characters_mapping.items():
+        txt = txt.replace(a, b)
+    
+    # then we have to deal with the specaial characters are cut off by xml tags (angchor and metamark)
+    for i in [1,2]:
+        x = re.escape(newline[:i])
+        y = re.escape(newline[i:])
+        pattern = rf'{x}(<[^{x}{y}]+?/>){y}'
+        txt = re.sub(pattern, r'\1', txt)
+
+    # special with the newline separated in three
+    x = re.escape(newline[0])
+    y = re.escape(newline[1])
+    z = re.escape(newline[2])
+    pattern = rf'{x}(<[^{x}{y}{z}]+?/>){y}(<[^{x}{y}{z}]+?/>){z}'
+    txt = re.sub(pattern, r'\1\2', txt)
+
+    # new line in the change list
+    for i in [1,2]:
+        x = re.escape(newline[:i])
+        pattern = rf'{x}(</[sub|sup|add])'
+        txt = re.sub(pattern, r'\1', txt)
+
+    # # special characters in the change list in the change list
+    # x = re.escape(newline[0:2])
+    # pattern = rf'{x}(</)'
+    # breakpoint()
+    # txt = re.sub(pattern, r'\1', txt)
+    
+    for a, b in escape_characters_mapping.items():
+        if b.startswith(esc):
+            # case in the body
+            x = re.escape(b[:1])
+            y = re.escape(b[1:])
+            pattern = rf'{x}(<[^{x}{y}]+?/>)({y})'
+            txt = re.sub(pattern, r'\1\2', txt)
+
+            # case in the change list
+            x = re.escape(b[:1])
+            pattern = rf'{x}(</[sub|sup|add])'
+            txt = re.sub(pattern, r'\1', txt)
+             
+        # TODO implement with "«'",
+    
+    
+    return txt
+    
 
 def read(filepath: pathlib.Path):
     xml_content = filepath.read_text(encoding="utf-8")
@@ -68,6 +124,16 @@ def remove_medite_annotations(txt: str) -> str:
 
     return txt
 
+
+
+    # remove escape characters
+    txt = txt.replace(newline, "")
+
+    for a in medite_special_characters:
+        txt = txt.replace(a, '')
+        
+
+    return txt
 
 Output = namedtuple("Output", "id txt soup path tree")
 
@@ -131,6 +197,46 @@ def remove_newline_annotation(body):
                             # we replace it with empty
                             nx.replace_with("")
 
+class Tag(Enum):
+    START = "START"
+    END = "END"
+
+def to_xml_flat(filepath: pathlib.Path):
+    """remove non original tags in tei xml so it can be compared post/pre processing"""
+    soup = read(filepath=filepath)
+    soup = copy.deepcopy(soup)
+    for tag_name in ['metamark', 'anchor']:
+        for tag in soup.find_all(tag_name):
+            tag.decompose()
+    # yield all the xml tags, i.e when an element is open, when it is closed
+    def gen():
+        # we go through the divs
+        for div in soup.find("body").find_all("div"):
+            # we go through the paragraphs
+            p_elements = div.find_all("p")
+            for p in p_elements:
+                yield Tag.START
+                for x in p.contents:
+                    yield x
+                yield Tag.END
+    # z = list(itertools.chain(*gen()))
+    xx = list(gen())
+    # we then need to merge the string that were separated by metamarks and anchors
+    def gen():
+        for t, x_iter in itertools.groupby(xx, type):
+            if t == bs4.element.NavigableString:
+                k = "".join(x_iter)
+                # we remove the newline
+                if k.strip():
+                    yield k
+            else:
+                x = list(x_iter)
+                # if len(x)>1:
+                #     breakpoint()
+                yield from x
+    return list(gen())
+
+
 
 # TODO rename to preprocess_xml or tei2txt
 def xml2txt(filepath: pathlib.Path) -> Output:
@@ -158,6 +264,10 @@ def xml2txt(filepath: pathlib.Path) -> Output:
         for div in body.find_all("div"):
             p_elements = div.find_all("p")
             for p in p_elements:
+                for x in medite_special_characters:
+                    if x in str(p):
+                        print(f'f"special character {repr(x)} found in {p}"')
+                    #assert x not in str(p), f"special character {repr(x)} found in {p}"
                 # for each paragraph, we construct the text
                 def gen_p():
                     # if there
@@ -562,11 +672,11 @@ def process(
             del element["id"]
     # post processing
     # remove newline
-    remove_newline_annotation(z1.soup.find("body"))
+    # remove_newline_annotation(z1.soup.find("body"))
 
     txt_raw = str(z1.soup.find("body"))
     # breakpoint()
-    txt = remove_medite_annotations(txt_raw)
+    txt = remove_medite_annotations_simple(txt_raw)
     root.append(ET.fromstring(txt))
     tree = ET.ElementTree(root)
     tree.write(output_filepath, encoding="utf-8", xml_declaration=True, method="xml")
@@ -586,15 +696,28 @@ def process(
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
 
-    # now we verify, that the original text has not changed if we reconstruct it from the xml
-    s1 = to_txt(source_filepath)
-    s2 = to_txt(output_filepath)
-    assert len(s1) > 0
+    # we verfiy the old and the new xml gives the same original text
+    x2 = [str(k) for k in to_xml_flat(output_filepath)]
+    x1 = [str(k) for k in to_xml_flat(source_filepath)]
 
-    # TODO there are still discrepancies that needs to be adressed
-    result = testfixtures.compare(
-        s1, s2, x_label="original text", y_label="processed text", raises=False
+    x12=[(k,v) for k,v in itertools.zip_longest(x1,x2)]
+    import pandas as pd
+    dfx=pd.DataFrame(x12,columns=['x1','x2'])
+    dfx.to_csv('flat.csv')
+    # we only select the rows where the text is different
+    df = dfx[dfx['x1']!=dfx['x2']]
+    strict = True
+    for x in df.itertuples():
+        result = testfixtures.compare(
+            x.x1, x.x2, x_label="original text", y_label="processed text", raises=strict
+        )
+        if result:
+            logger.warn('original xml has changed\n{result}\n')
+    # TODO add strict parameters that stops the process if
+    testfixtures.compare(
+            x1, x2, x_label="original text", y_label="processed text", raises=True
     )
+
 
 
 def create_tei_xml(

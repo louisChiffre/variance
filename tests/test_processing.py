@@ -11,16 +11,17 @@ from variance.medite import utils as ut
 DATA_DIR = Path("tests/data/samples")
 XML_DATA_DIR = DATA_DIR / Path("exemple_variance")
 TXT_DATA_DIR = DATA_DIR / Path("post_processing")
-
+TEST_DATA_DIR = Path("tests/data") 
 
 @pytest.mark.parametrize(
-    "filename,id",
+    "directory_name,filename,id",
     [
-        ("la_vieille_fille_v1.xml", "lvf_v1"),
+        ("LaVieilleFille","1vf", "lvf_v1"),
     ],
 )
-def test_xml2txt(filename, id):
-    z = p.xml2txt(filepath=XML_DATA_DIR / filename)
+def test_xml2txt(directory_name, filename, id):
+    p_xml = (TEST_DATA_DIR / directory_name /filename).with_suffix(".xml")
+    z = p.xml2txt(filepath=p_xml)
     assert z.id == id
 
 
@@ -28,43 +29,6 @@ Result = namedtuple("Result", "ins sup remp bc bd lg")
 Block = namedtuple("Block", "a b")
 
 
-@pytest.mark.parametrize(
-    "filename",
-    [
-        ("comparaison_la_vieille_fille_v1.xml"),
-    ],
-)
-def test_process(filename):
-    filepath = XML_DATA_DIR / filename
-    soup = p.read(filepath=filepath)
-    dic = soup.find("informations").attrs
-
-    parameters = md.Parameters(
-        lg_pivot=int(dic["lg_pivot"]),
-        ratio=int(dic["ratio"]),
-        seuil=int(dic["seuil"]),
-        car_mot=True,  # always,
-        case_sensitive=bool(int(dic["caseSensitive"])),
-        sep_sensitive=bool(int(dic["sepSensitive"])),
-        diacri_sensitive=bool(int(dic["diacriSensitive"])),
-        algo="HIS",
-    )
-
-    z = [
-        p.xml2txt(k)
-        for k in XML_DATA_DIR.glob("*.xml")
-        if not str(k.name).startswith("comp") and not str(k.name).startswith("diff")
-    ]
-
-    # lg_pivot ratio seuil car_mot case_sensitive sep_sensitive diacri_sensitive algo')
-    id2filepath = {k.id: k.path for k in z}
-
-    p.process(
-        source_filepath=id2filepath[dic["vsource"]],
-        target_filepath=id2filepath[dic["vcible"]],
-        parameters=parameters,
-        output_filepath=filepath.with_suffix(".output.xml"),
-    )
 
 
 import functools
@@ -81,6 +45,7 @@ import functools
             "rovinces de France \plus ou moins\ de \chevaliers de Valois\ il en existait",
             "rovinces de France <emph>plus ou moins</emph> de <emph>chevaliers de Valois</emph> il en existait",
         ),
+        
     ],
 )
 def test_add_emp_tags(txt, expected):
@@ -90,6 +55,79 @@ def test_add_emp_tags(txt, expected):
     # check invariance: if we add the emph tags and remove them, we should get the starting string
     txt_ = p.remove_emph_tags(actual)
     testfixtures.compare(txt_, txt)
+
+@pytest.mark.parametrize(
+    "txt,expected",
+    [
+        (
+'''
+<p><anchor corresp="v2_0_17" function="bc" xml:id="v1_0_17"/>LA VIEILLE FILLE'<metamark function="del" target="v1_17_79"/>|
+</p>
+''',
+'''
+<p><anchor corresp="v2_0_17" function="bc" xml:id="v1_0_17"/>LA VIEILLE FILLE<metamark function="del" target="v1_17_79"/></p>
+'''
+
+        ),
+        (
+'''<p>'|
+</p>''',
+            '''<p></p>''',
+        ),
+(
+    '''«<anchor corresp="v2_13742_13776" function="bc" xml:id="v1_13706_13740"/><emph>J’admire le chevalier de Valois!'<metamark corresp="v2_13776_13781" function="subst" target="v1_13740_13750"/>…..'</emph>»''',
+    '''«<anchor corresp="v2_13742_13776" function="bc" xml:id="v1_13706_13740"/><emph>J’admire le chevalier de Valois!<metamark corresp="v2_13776_13781" function="subst" target="v1_13740_13750"/>…..'</emph>»''',
+
+),
+# case with two tags embedded in a special character
+(
+    '''<p>– S’il était honnête homme, il le devrait, dit madame Granson; mais vraiment mon chien a des mœurs plus honnêtes…'<metamark corresp="v2_167155_167160" function="subst" target="v1_164256_164257"/>|<anchor corresp="v2_167160_167252" function="bc" xml:id="v1_164257_164349"/>
+</p>''',
+    '''<p>– S’il était honnête homme, il le devrait, dit madame Granson; mais vraiment mon chien a des mœurs plus honnêtes…<metamark corresp="v2_167155_167160" function="subst" target="v1_164256_164257"/><anchor corresp="v2_167160_167252" function="bc" xml:id="v1_164257_164349"/></p>''',
+
+),
+(
+    '''<p>– Voulez-vous le coucher dans la chambre verte?<metamark corresp="v2_191824_191826" function="subst" target="v1_188577_188581"/>…'|<anchor corresp="v2_191826_191927" function="bc" xml:id="v1_188581_188682"/>
+</p>''',
+    '''<p>– Voulez-vous le coucher dans la chambre verte?<metamark corresp="v2_191824_191826" function="subst" target="v1_188577_188581"/>…<anchor corresp="v2_191826_191927" function="bc" xml:id="v1_188581_188682"/></p>'''
+),
+(
+    '''<p>– Quoi, mon oncle! vous saviez…<metamark corresp="v2_218163_218164" function="subst" target="v1_214304_214307"/>.'|<anchor corresp="v2_218164_218472" function="bc" xml:id="v1_214307_214615"/>
+</p>''',
+    '''<p>– Quoi, mon oncle! vous saviez…<metamark corresp="v2_218163_218164" function="subst" target="v1_214304_214307"/>.<anchor corresp="v2_218164_218472" function="bc" xml:id="v1_214307_214615"/></p>''',
+
+),
+(
+    '''<addition corresp="v2_79779_79789">.II'</addition>''',
+    '''<addition corresp="v2_79779_79789">.II</addition>''',
+
+),
+# (
+#     '''<addition corresp="v2_46588_46590">'|</addition>''',
+#     '''<addition corresp="v2_46588_46590"></addition>''',
+# ),
+(
+    '''<addition corresp="v2_79779_79789">.II'</addition>''',
+    '''<addition corresp="v2_79779_79789">.II</addition>''',
+),
+(
+    '''<substitution target="v1_164256_164257" corresp="v2_167155_167160">..'|</substitution>''',
+    '''<substitution target="v1_164256_164257" corresp="v2_167155_167160">..</substitution>''',
+),
+(
+    '''<deletion corresp="v1_171702_171704">.'</deletion>''',
+    '''<deletion corresp="v1_171702_171704">.</deletion>'''
+),
+(
+    '''Par des comptes rendus de la Bourse, ils se mettraient en relations avec des financiers, et obtiendraient ainsi les cent mille francs de cautionnement indispensables. «On ne te les demande pas! note bien.» Mais, pour que la feuille pût être transformée en journal politique, il fallait auparavant avoir une large clientèle, et, pour cela, se résoudre à quelques dépenses, tant pour les frais de papeterie, d’imprimerie, de bureau, bref une somme de quinze mille francs.''',
+    '''Par des comptes rendus de la Bourse, ils se mettraient en relations avec des financiers, et obtiendraient ainsi les cent mille francs de cautionnement indispensables. «On ne te les demande pas! note bien.» Mais, pour que la feuille pût être transformée en journal politique, il fallait auparavant avoir une large clientèle, et, pour cela, se résoudre à quelques dépenses, tant pour les frais de papeterie, d’imprimerie, de bureau, bref une somme de quinze mille francs.''',
+)
+
+    ],
+)
+def test_remove_medite_annotations_simple(txt, expected):
+    actual = p.remove_medite_annotations_simple(txt)
+    testfixtures.compare(actual, expected)
 
 
 def copy_first_n_lines(src, dst, n):
@@ -117,6 +155,7 @@ def temp_file():
 
 
 def gen_samples():
+    return
     names = ["vf", "vndtt"]
     versions = [1, 2]
     for name in names:
@@ -165,15 +204,20 @@ def test_create_tei_xml(txt, temp_file):
 
 
 @pytest.mark.parametrize(
-    "name,title",
+    "directory_name,filename_1,filename_2",
     [
-        ["vf", "La vieille fille"],
-        ["vndtt", "La Vendetta"],
+        ('LaVendetta','1vndtt', '2vndtt'),
+        ("LaVieilleFille","1vf", "2vf"),
+        ("EdiucationSentimentale", "1es", "2es")
+
     ],
 )
-def test_post_processing(name, title):
-    p1_ref = TXT_DATA_DIR / f"1{name}.txt"
-    p2_ref = TXT_DATA_DIR / f"2{name}.txt"
+def test_post_processing(directory_name, filename_1, filename_2):
+    test_dir = TEST_DATA_DIR / directory_name
+    p1_xml = (test_dir / filename_1).with_suffix(".xml")
+    p2_xml = (test_dir / filename_2).with_suffix(".xml")
+    
+
 
     parameters = md.Parameters(
         lg_pivot=7,
@@ -186,53 +230,8 @@ def test_post_processing(name, title):
         algo="HIS",
     )
 
-    # we copy the test file in outputs so we are sure they will be not overwritten
-    p1 = TXT_DATA_DIR / "outputs" / f"1{name}.txt"
-    p2 = TXT_DATA_DIR / "outputs" / f"2{name}.txt"
 
-    # copyfile = functools.partial(copy_first_n_lines, n=18)
-    # copyfile = functools.partial(copy_first_n_lines, n=10) x
-    # copyfile = functools.partial(copy_first_n_lines, n=8) ok
-    # copyfile = functools.partial(copy_first_n_lines, n=9) #ok
-    # copyfile = functools.partial(copy_first_n_lines, n=10) #ok
-    # copyfile = functools.partial(copy_first_n_lines, n=10) #ok
-    copyfile = functools.partial(copy_first_n_lines, n=None)  # ok
-
-    # copyfile = shutil.copyfile
-
-    copyfile(p1_ref, p1)
-    copyfile(p2_ref, p2)
-
-    pub_date_str = "01.07.2024"
-
-    # we transform first the the txt in tei xml
-    # to verify create_tei_xml works, we check that the reverse operation returns to the original text
-    def make_xml_and_check_invariance(path, version_nb) -> Path:
-        path_xml = p.create_tei_xml(
-            path=path, pub_date_str=pub_date_str, title_str=title, version_nb=version_nb
-        )
-        txt_act = p.xml2txt(path_xml).txt
-        txt_ref = path.read_text()
-        Path("ref.txt").write_text(txt_ref)
-        testfixtures.compare(
-            txt_ref, txt_act, x_label="original text", y_label="processed text"
-        )
-        return path_xml
-
-    p1_xml = make_xml_and_check_invariance(path=p1, version_nb=1)
-    p2_xml = make_xml_and_check_invariance(path=p2, version_nb=1)
-
-    # there is a bug in to_txt
-    z = [k for k in p.to_txt(p1_xml) if k]
-    assert z
-
-    appli = md.DiffTexts(
-        chaine1=p1.read_text(), chaine2=p2.read_text(), parameters=parameters
-    )
-    html_filename = TXT_DATA_DIR / "outputs" / f"{name}_v1_vs_v2.html"
-    ut.make_html_output(appli=appli, html_filename=html_filename)
-
-    output_filepath = TXT_DATA_DIR / "outputs" / f"{name}_v1_vs_v2.xml"
+    output_filepath =  test_dir / f'{filename_1}_{filename_2}.output.xml'
     p.process(
         source_filepath=p1_xml,
         target_filepath=p2_xml,
