@@ -201,7 +201,7 @@ def test_create_tei_xml(txt, temp_file):
     [
         ("LaVendetta", "1vndtt", "2vndtt"),
         ("LaVieilleFille", "1vf", "2vf"),
-        ("EdiucationSentimentale", "1es", "2es"),
+        ("EducationSentimentale", "1es", "2es"),
     ],
 )
 def test_post_processing(directory_name, filename_1, filename_2):

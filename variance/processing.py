@@ -7,17 +7,16 @@ import xml.etree.ElementTree as ET
 from collections import namedtuple
 from itertools import zip_longest
 from pathlib import Path
-import itertools
 import bs4
 import testfixtures
 from bs4 import BeautifulSoup
-from intervaltree import Interval, IntervalTree
+from intervaltree import IntervalTree
 from lxml import etree
 from enum import Enum
 import copy
 
 from variance.medite import medite as md
-from variance.medite.utils import make_html_output, make_javascript_output, pretty_print
+from variance.medite.utils import make_html_output, make_javascript_output
 
 logger = logging.getLogger(__name__)
 
@@ -344,8 +343,7 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
                 return I(start - N, end - N)
             case (("R", a_start, a_end, []), ("R", b_start, b_end, [])):
                 return R(a_start, a_end, b_start - N, b_end - N)
-            # TODO clarify the meaning of R with pair of number at the end
-            # it seems it is for the case when a block was moved and this block replace an existing block
+            # case when a block was moved and this block replace an existing block
             # it's a Deplacement/Replacement
             # A ---+
             #      |
@@ -709,16 +707,16 @@ def process(
     dfx.to_csv("flat.csv")
     # we only select the rows where the text is different
     df = dfx[dfx["x1"] != dfx["x2"]]
-    strict = True
+    strict = False
     for x in df.itertuples():
         result = testfixtures.compare(
             x.x1, x.x2, x_label="original text", y_label="processed text", raises=strict
         )
         if result:
             logger.warn("original xml has changed\n{result}\n")
-    # TODO add strict parameters that stops the process if
+    # TODO add strict parameters that stops the process if inconssiencies are found
     testfixtures.compare(
-        x1, x2, x_label="original text", y_label="processed text", raises=True
+        x1, x2, x_label="original text", y_label="processed text", raises=strict
     )
 
 
