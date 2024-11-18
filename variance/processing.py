@@ -29,7 +29,7 @@ for prefix, uri in namespaces.items():
 
 esc = "'"
 # we keep track of the escape characters
-medite_special_characters = [esc,  '|']
+medite_special_characters = [esc, "|"]
 escape_characters_mapping = {
     "…": "'…",
     ".": "'.",
@@ -47,51 +47,50 @@ def remove_medite_annotations_simple(txt: str) -> str:
     # we remove first the escape characters
     for b, a in escape_characters_mapping.items():
         txt = txt.replace(a, b)
-    
+
     # then we have to deal with the specaial characters are cut off by xml tags (angchor and metamark)
-    for i in [1,2]:
+    for i in [1, 2]:
         x = re.escape(newline[:i])
         y = re.escape(newline[i:])
-        pattern = rf'{x}(<[^{x}{y}]+?/>){y}'
-        txt = re.sub(pattern, r'\1', txt)
+        pattern = rf"{x}(<[^{x}{y}]+?/>){y}"
+        txt = re.sub(pattern, r"\1", txt)
 
     # special with the newline separated in three
     x = re.escape(newline[0])
     y = re.escape(newline[1])
     z = re.escape(newline[2])
-    pattern = rf'{x}(<[^{x}{y}{z}]+?/>){y}(<[^{x}{y}{z}]+?/>){z}'
-    txt = re.sub(pattern, r'\1\2', txt)
+    pattern = rf"{x}(<[^{x}{y}{z}]+?/>){y}(<[^{x}{y}{z}]+?/>){z}"
+    txt = re.sub(pattern, r"\1\2", txt)
 
     # new line in the change list
-    for i in [1,2]:
+    for i in [1, 2]:
         x = re.escape(newline[:i])
-        pattern = rf'{x}(</[sub|sup|add])'
-        txt = re.sub(pattern, r'\1', txt)
+        pattern = rf"{x}(</[sub|sup|add])"
+        txt = re.sub(pattern, r"\1", txt)
 
     # # special characters in the change list in the change list
     # x = re.escape(newline[0:2])
     # pattern = rf'{x}(</)'
     # breakpoint()
     # txt = re.sub(pattern, r'\1', txt)
-    
+
     for a, b in escape_characters_mapping.items():
         if b.startswith(esc):
             # case in the body
             x = re.escape(b[:1])
             y = re.escape(b[1:])
-            pattern = rf'{x}(<[^{x}{y}]+?/>)({y})'
-            txt = re.sub(pattern, r'\1\2', txt)
+            pattern = rf"{x}(<[^{x}{y}]+?/>)({y})"
+            txt = re.sub(pattern, r"\1\2", txt)
 
             # case in the change list
             x = re.escape(b[:1])
-            pattern = rf'{x}(</[sub|sup|add])'
-            txt = re.sub(pattern, r'\1', txt)
-             
+            pattern = rf"{x}(</[sub|sup|add])"
+            txt = re.sub(pattern, r"\1", txt)
+
         # TODO implement with "«'",
-    
-    
+
     return txt
-    
+
 
 def read(filepath: pathlib.Path):
     xml_content = filepath.read_text(encoding="utf-8")
@@ -124,16 +123,14 @@ def remove_medite_annotations(txt: str) -> str:
 
     return txt
 
-
-
     # remove escape characters
     txt = txt.replace(newline, "")
 
     for a in medite_special_characters:
-        txt = txt.replace(a, '')
-        
+        txt = txt.replace(a, "")
 
     return txt
+
 
 Output = namedtuple("Output", "id txt soup path tree")
 
@@ -197,17 +194,20 @@ def remove_newline_annotation(body):
                             # we replace it with empty
                             nx.replace_with("")
 
+
 class Tag(Enum):
     START = "START"
     END = "END"
+
 
 def to_xml_flat(filepath: pathlib.Path):
     """remove non original tags in tei xml so it can be compared post/pre processing"""
     soup = read(filepath=filepath)
     soup = copy.deepcopy(soup)
-    for tag_name in ['metamark', 'anchor']:
+    for tag_name in ["metamark", "anchor"]:
         for tag in soup.find_all(tag_name):
             tag.decompose()
+
     # yield all the xml tags, i.e when an element is open, when it is closed
     def gen():
         # we go through the divs
@@ -219,8 +219,10 @@ def to_xml_flat(filepath: pathlib.Path):
                 for x in p.contents:
                     yield x
                 yield Tag.END
+
     # z = list(itertools.chain(*gen()))
     xx = list(gen())
+
     # we then need to merge the string that were separated by metamarks and anchors
     def gen():
         for t, x_iter in itertools.groupby(xx, type):
@@ -234,8 +236,8 @@ def to_xml_flat(filepath: pathlib.Path):
                 # if len(x)>1:
                 #     breakpoint()
                 yield from x
-    return list(gen())
 
+    return list(gen())
 
 
 # TODO rename to preprocess_xml or tei2txt
@@ -267,7 +269,8 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                 for x in medite_special_characters:
                     if x in str(p):
                         print(f'f"special character {repr(x)} found in {p}"')
-                    #assert x not in str(p), f"special character {repr(x)} found in {p}"
+
+                    # assert x not in str(p), f"special character {repr(x)} found in {p}"
                 # for each paragraph, we construct the text
                 def gen_p():
                     # if there
@@ -403,6 +406,8 @@ def process(
         None
     """
     # Rest of the code...
+
+
 def process(
     source_filepath: pathlib.Path,
     target_filepath: pathlib.Path,
@@ -461,17 +466,14 @@ def process(
 
     # we create the html for debugging/verification purpose purpose
     html_output_filename = output_filepath.with_suffix(".html")
-    logger.info(f'generating classic html output {html_output_filename}')
-    make_html_output(
-        appli=res.appli, html_filename=html_output_filename
-    )
+    logger.info(f"generating classic html output {html_output_filename}")
+    make_html_output(appli=res.appli, html_filename=html_output_filename)
 
-    # we don't want the script to stop if there is an ntld data issue 
+    # we don't want the script to stop if there is an ntld data issue
     try:
         make_javascript_output(appli=res.appli, base_dir=source_filepath.parent)
     except Exception as e:
         print(f"Could not generate javascript output {e}")
-
 
     # populate the xml
     updated = set()
@@ -700,24 +702,24 @@ def process(
     x2 = [str(k) for k in to_xml_flat(output_filepath)]
     x1 = [str(k) for k in to_xml_flat(source_filepath)]
 
-    x12=[(k,v) for k,v in itertools.zip_longest(x1,x2)]
+    x12 = [(k, v) for k, v in itertools.zip_longest(x1, x2)]
     import pandas as pd
-    dfx=pd.DataFrame(x12,columns=['x1','x2'])
-    dfx.to_csv('flat.csv')
+
+    dfx = pd.DataFrame(x12, columns=["x1", "x2"])
+    dfx.to_csv("flat.csv")
     # we only select the rows where the text is different
-    df = dfx[dfx['x1']!=dfx['x2']]
+    df = dfx[dfx["x1"] != dfx["x2"]]
     strict = True
     for x in df.itertuples():
         result = testfixtures.compare(
             x.x1, x.x2, x_label="original text", y_label="processed text", raises=strict
         )
         if result:
-            logger.warn('original xml has changed\n{result}\n')
+            logger.warn("original xml has changed\n{result}\n")
     # TODO add strict parameters that stops the process if
     testfixtures.compare(
-            x1, x2, x_label="original text", y_label="processed text", raises=True
+        x1, x2, x_label="original text", y_label="processed text", raises=True
     )
-
 
 
 def create_tei_xml(
