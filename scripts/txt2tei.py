@@ -14,25 +14,25 @@ logging.basicConfig(
 
 @click.command()
 @click.argument("source_filename", type=click.Path(exists=True))
-@click.option("--pub_date_str", default="unknown", help="Publication date string")
-@click.option("--title", default="unknown", help="Title string")
-@click.option("--version_nb", default=1, help="Version number")
-def run(source_filename, pub_date_str, title, version_nb):
+@click.option("--pub_date_str", default="inconnue", help="Chaîne de date de publication")
+@click.option("--titre", default="inconnu", help="Titre")
+@click.option("--version_nb", default=1, help="Numéro de version")
+def run(source_filename, pub_date_str, titre, version_nb):
     source_filepath = pathlib.Path(source_filename)
     if source_filepath.suffix != ".txt":
-        raise ValueError('source file must be a ".txt" file')
+        raise ValueError('le fichier source doit être un fichier ".txt"')
 
     logger.info(
-        f"creating TEI file from {source_filepath} with pub_date_str={pub_date_str}, title={title}, and version_nb={version_nb}"
+        f"création du fichier TEI à partir de {source_filepath} avec pub_date_str={pub_date_str}, titre={titre} et version_nb={version_nb}"
     )
 
     target_filepath = p.create_tei_xml(
         path=source_filepath,
         pub_date_str=pub_date_str,
-        title_str=title,
+        title_str=titre,
         version_nb=version_nb,
     )
-    logger.info(f"TEI file created at {target_filepath}")
+    logger.info(f"Fichier TEI créé à {target_filepath}")
 
 
 if __name__ == "__main__":
