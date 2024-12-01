@@ -14,7 +14,9 @@ logging.basicConfig(
 
 @click.command()
 @click.argument("source_filename", type=click.Path(exists=True))
-@click.option("--pub_date_str", default="inconnue", help="Chaîne de date de publication")
+@click.option(
+    "--pub_date_str", default="inconnue", help="Chaîne de date de publication"
+)
 @click.option("--titre", default="inconnu", help="Titre")
 @click.option("--version_nb", default=1, help="Numéro de version")
 def run(source_filename, pub_date_str, titre, version_nb):

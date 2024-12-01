@@ -280,20 +280,22 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                             text = content.get_text()
                             for x in medite_special_characters:
                                 if x in text:
-                                    raise NotImplementedError(f"special character {repr(x)} found in emphasized text {text}")
+                                    raise NotImplementedError(
+                                        f"special character {repr(x)} found in emphasized text {text}"
+                                    )
                             yield f"\\{text}\\"
                         elif content.name == "pb":
-                            #pos2annotation[cursor + tag_cursor] = content
+                            # pos2annotation[cursor + tag_cursor] = content
                             yield content
                         elif isinstance(content, str):
                             yield add_escape_characters(content)
                         elif content.name is None and content.string:
                             yield add_escape_characters(content.string)
-                        #tag_cursor += len(str(content.get_text))
+                        # tag_cursor += len(str(content.get_text))
                     yield newline
-                
+
                 # second pass
-                txt = ''
+                txt = ""
                 paragraph_cursor = 0
                 for x in gen_p():
                     if isinstance(x, str):
@@ -302,8 +304,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
                     else:
                         pos2annotation[cursor + paragraph_cursor] = x
 
-                assert len(txt)==paragraph_cursor
-                
+                assert len(txt) == paragraph_cursor
 
                 # we then update the mapping character range -> paragraph
                 old_cursor, cursor = cursor, cursor + paragraph_cursor
@@ -323,7 +324,12 @@ def xml2txt(filepath: pathlib.Path) -> Output:
 
     # the output of the function contains the txt, but also the original xml document and the character to paragraph mapping
     return Output(
-        id=soup.find("TEI")["xml:id"], txt=txt, soup=soup, tree=tree, path=filepath, pos2annotation=pos2annotation,
+        id=soup.find("TEI")["xml:id"],
+        txt=txt,
+        soup=soup,
+        tree=tree,
+        path=filepath,
+        pos2annotation=pos2annotation,
     )
 
 
@@ -401,9 +407,6 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
 
     assert txt2 == z2.txt
     return Result(appli=appli, deltas=deltas)
-
-
-
 
 
 def process(
@@ -487,43 +490,46 @@ def process(
     # populate the xml
     updated = set()
 
-    def get_xml_text_from_range(z:Output, start, end):
+    def get_xml_text_from_range(z: Output, start, end):
         def gen():
             for k in range(start, end):
                 if k in z.pos2annotation:
                     yield z.pos2annotation[k]
                 else:
                     yield z.txt[k]
+
         def gen2():
             for group, k_iter in itertools.groupby(gen(), type):
                 if group == bs4.element.Tag:
                     yield from k_iter
                 else:
                     yield "".join(k_iter)
+
         return list(gen2())
-        
+
     # there is a series of utility functions
     # add to the list of changes
     def add_list_(txt, attributes, name):
         """add change to list of change for the list tags of mediteData"""
-        
+
         list_elem = lists[name]
         elem = ET.SubElement(lists[name], name, attributes)
         if txt:
             elem.text = remove_medite_annotations(txt)
-    def add_list(z:Output, start, end, attributes, name):
+
+    def add_list(z: Output, start, end, attributes, name):
         """add change to list of change for the list tags of mediteData"""
-        txts=get_xml_text_from_range(z=z,start=start,end=end)
+        txts = get_xml_text_from_range(z=z, start=start, end=end)
 
         list_elem = lists[name]
         # we create a new element with the correct tag and attributes
         elem = ET.SubElement(lists[name], name, attributes)
-        elem.text=''
+        elem.text = ""
         for txt in txts:
             if isinstance(txt, bs4.element.Tag):
                 elem.append(ET.fromstring(str(txt)))
             else:
-                elem.text+=remove_medite_annotations(txt)
+                elem.text += remove_medite_annotations(txt)
 
     def metamark(function: str, target: str):
         """creates a metamark"""
@@ -532,8 +538,9 @@ def process(
     def zip_paragraphs(start: int, end: int):
         """given a charactr range, returns the associated paragraphs and texts"""
         txt = z1.txt[start:end]
+
         # we know for each paragraph the character range as it is stored in the interval tree
-        # given a character range, a pragraph, we retrieve the text associated 
+        # given a character range, a pragraph, we retrieve the text associated
         # here is a diagram to explain the process
         # paragraph: ------xxxxxxxxxxxxxxxxxx-------
         # text     : ------------xxxxxxxxxxxxxxxx---
@@ -543,6 +550,7 @@ def process(
                 start_ = max(k.begin, start)
                 end_ = min(k.end, end)
                 yield get_xml_text_from_range(z=z1, start=start_, end=end_)
+
         para_txts = list(gen_txts())
         # breakpoint()
 
@@ -598,11 +606,12 @@ def process(
         pass
     for key in set(z2_moved_blocks).difference(z1_moved_blocks):
         pass
+
         # breakpoint()
     # we verify that for every moved block in z1 there is a coresponding block in z2
     # currently not active as the TODO above is not implemented
     # assert set(z1_moved_blocks) == set(z2_moved_blocks)
-    # TODO rename to original_text_append 
+    # TODO rename to original_text_append
     def append_text(tag, start: int, end: int):
         """add text to new xml body, add paragraph and pb tags if necessary"""
         # character range can cross several paragraphs
@@ -612,7 +621,7 @@ def process(
             zp = paragraph.data
             # we remove the existing in the paragraph if it has not been done alreadyy so we can reconstruct it
             reset_paragraph(id=id, zp=zp)
-            # we add the tag if it's the first paragraph from the range             
+            # we add the tag if it's the first paragraph from the range
             if i == 0:
                 append_tag(tag=tag, zp=zp)
             logger.debug(f"appending {txt=} on {zp}")
@@ -698,7 +707,11 @@ def process(
             #     txt=key, attributes=dict(target=id_v1, corresp=id_v2), name="transpose"
             # )
             add_list(
-                z=z1, start=z.start, end=z.end, attributes=dict(target=id_v1, corresp=id_v2), name="transpose"
+                z=z1,
+                start=z.start,
+                end=z.end,
+                attributes=dict(target=id_v1, corresp=id_v2),
+                name="transpose",
             )
         elif isinstance(z, DB):
             logger.debug("MOVE B".center(120, "$"))

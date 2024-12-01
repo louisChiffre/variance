@@ -82,6 +82,7 @@ B_ID = "id"
 ASSETS_DIRECTORY = join(dirname(dirname(os.path.dirname(__file__))), "assets")
 assert os.path.exists(ASSETS_DIRECTORY)
 
+
 def prettify(elem):
     rough_string = ET.tostring(elem, encoding="utf-8")
     reparsed = minidom.parseString(rough_string)
@@ -219,9 +220,7 @@ def make_xml_output(
 # we link to nltka data that were installed manually using
 # python -m nltk.downloader -d Users/laurentmauron/nltk_data all
 # and added to the github repo
-os.environ["NLTK_DATA"] = os.path.join(
-    ASSETS_DIRECTORY, "nltk_data"
-)
+os.environ["NLTK_DATA"] = os.path.join(ASSETS_DIRECTORY, "nltk_data")
 from nltk.tokenize.punkt import PunktSentenceTokenizer
 from nltk.tokenize import sent_tokenize, word_tokenize
 from nltk.data import load
