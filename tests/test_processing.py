@@ -199,6 +199,7 @@ def test_create_tei_xml(txt, temp_file):
 @pytest.mark.parametrize(
     "directory_name,filename_1,filename_2",
     [
+        ("LaVieilleFilleAlt", "1vf", "2vf"),
         ("LaVendetta", "1vndtt", "2vndtt"),
         ("LaVieilleFille", "1vf", "2vf"),
         ("EducationSentimentale", "1es", "2es"),
