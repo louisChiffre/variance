@@ -10,7 +10,7 @@ from . import synthetic
 
 Parameters = namedtuple(
     "Parameters",
-    "lg_pivot ratio seuil car_mot case_sensitive sep_sensitive diacri_sensitive algo",
+    "lg_pivot ratio seuil car_mot case_sensitive sep_sensitive diacri_sensitive algo sep",
 )
 Resources = namedtuple("Resources", "source target")
 
@@ -23,6 +23,25 @@ DEFAULT_PARAMETERS = Parameters(
     sep_sensitive=True,
     diacri_sensitive=True,
     algo="HIS",
+    # Liste par defaut des separateurs de mots et de phrases
+    # Espace :
+    # Point d'exclamation : !
+    # Retour chariot : \r
+    # Saut de ligne : \n
+    # Deux-points : :
+    # Tabulation : \t
+    # Point-virgule : ;
+    # Trait d'union : -
+    # Point d'interrogation : ?
+    # Guillemet double : "
+    # Apostrophe simple : '
+    # Accent grave : `
+    # Apostrophe typographique (guillemet simple fermant) : ’
+    # Parenthèse ouvrante : (
+    # Parenthèse fermante : )
+    # sep=""" !\r,\n:\t;-?"'`\\u2019()""",
+    sep=""" !\r,\n:\t;-?"'`()""",
+
 )
 
 

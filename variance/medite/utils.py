@@ -501,20 +501,21 @@ Fragment = namedtuple("fragment", "type txt context")
 
 def pretty_print(appli):
     sentence_lookup = make_sentence_lookup(appli.bbl.texte)
-    W = 40
+    W = 80
     f = functools.partial(block2fragment, appli, sentence_lookup)
     template = (
         "{la:<4}|{lcode}{ta:<__W__}{reset}|{rcode}{tb:<__W__}{reset}|{lb:>4}".replace(
             "__W__", str(W)
         )
     )
+    print('\n\n')
     for a, b in appli.bbl.liste:
         fa = f(a)
         fb = f(b)
         type2code = {"BC": Fore.BLACK, "R": Fore.RED, "I": Fore.BLUE, "": Fore.YELLOW}
         lcode = type2code.get(fa.type, Fore.YELLOW)
         rcode = type2code.get(fb.type, Fore.YELLOW)
-        for la, lb, ta, tb in it.izip_longest(
+        for la, lb, ta, tb in it.zip_longest(
             [fa.type], [fb.type], tw.wrap(fa.txt, W), tw.wrap(fb.txt, W), fillvalue=" "
         ):
             print(

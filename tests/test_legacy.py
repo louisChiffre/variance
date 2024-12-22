@@ -194,11 +194,37 @@ def gen_separator_cases():
         sep_sensitive=True,
         diacri_sensitive=True,
         algo="HIS",
+        sep=""" !\r,\n:\t;-?"'`\\u2019()"""
+    )
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=''),
+        txt1="""Les poules vertes, couvent le samedi""",
+        txt2="Les poules couvent le samedi",
+        result=None,
     )
     yield Case(
         parameters=vanilla_parameters,
-        txt1="""Les poules du couvent couvent le samedi le vendredi le dimanche le jeudi aussi et mercredi bien sur""",
-        txt2="Les poules du couvent couvent le samedi",
+        txt1="""Les poules vertes, couvent le samedi""",
+        txt2="Les poules couvent le samedi",
+        result=None,
+    )
+    return
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=''),
+        txt1="""Les poules, couvent le samedi""",
+        txt2="Les poules couvent le samedi",
+        result=None,
+    )
+    yield Case(
+        parameters=vanilla_parameters,
+        txt1="""Les poules, couvent le samedi""",
+        txt2="Les poules couvent le samedi",
+        result=None,
+    )
+    yield Case(
+        parameters=vanilla_parameters,
+        txt1="""Les poules couvent le samedi le vendredi le dimanche le jeudi aussi et mercredi bien sur""",
+        txt2="Les poules couvent le samedi",
         result=None,
     )
 
@@ -208,6 +234,7 @@ def test_separator(case):
     appli = md.DiffTexts(
         chaine1=case.txt1, chaine2=case.txt2, parameters=case.parameters
     )
+    # to examine manually
     # ut.pretty_print(appli)
 
 

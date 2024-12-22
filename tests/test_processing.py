@@ -1,3 +1,4 @@
+from variance import operations as op
 import pytest
 from variance import processing as p
 import testfixtures
@@ -37,11 +38,11 @@ import functools
     "txt,expected",
     [
         (
-            "rovinces de France \plus ou moins de chevaliers de Valois\ il en existait",
+            r"rovinces de France \plus ou moins de chevaliers de Valois\ il en existait",
             "rovinces de France <emph>plus ou moins de chevaliers de Valois</emph> il en existait",
         ),
         (
-            "rovinces de France \plus ou moins\ de \chevaliers de Valois\ il en existait",
+            r"rovinces de France \plus ou moins\ de \chevaliers de Valois\ il en existait",
             "rovinces de France <emph>plus ou moins</emph> de <emph>chevaliers de Valois</emph> il en existait",
         ),
     ],
@@ -228,3 +229,121 @@ def test_post_processing(directory_name, filename_1, filename_2):
         parameters=parameters,
         output_filepath=output_filepath,
     )
+
+synthetic_xml_template ='''
+<?xml version="1.0" ?>
+<TEI xmlns="http://www.tei-c.org/ns/1.0" xml:id="lvf_v1">
+  <teiHeader>
+    <fileDesc>
+      <titleStmt>
+        <title>V{version}/title>
+        <author/>
+        <editor/>
+      </titleStmt>
+      <publicationStmt>
+        <date>2024</date>
+      </publicationStmt>
+      <sourceDesc>
+        <bibl>
+          <date>n/a</date>
+        </bibl>
+      </sourceDesc>
+    </fileDesc>
+  </teiHeader>
+  <text>
+    <body>
+      {body}
+    </body>
+  </text>
+</TEI>
+'''
+test_strings = {
+    'base': '<div><p>Vers 1800, un étranger, arriva devant le palais des Tuileries</p></div>',
+    'insertion': '<div><p>Vers 1800, un étranger patibulaire, arriva devant le palais des Tuileries</p></div>',
+    'double': '<div><p>Vers 1800, un étranger, </p><p>arriva devant le palais des Tuileries</p></div>',
+    'double_mixed': '<div><p>Vers 1800, un étranger patibulaire, </p><p>arriva devant le palais des Tuileries</p></div>',
+}
+
+def check_addition_paragraph(result):
+    additions = result.out.find_all('addition')
+    # We veπrify we have one addition
+    assert len(additions) == 1
+    # We verify that the addition is of type paragraph
+    assert additions[0]['type'] == 'paragraph'
+
+def check_addition_paragraph_and_text(result):
+    additions = result.out.find_all('addition')
+    # We verify we have one addition
+    assert len(additions) == 1
+    # We verify that the addition is of type paragraph
+    assert additions[0]['type'] == 'paragraph'
+
+
+def check_paragraph_deletion(result):
+    deletions = result.out.find_all('suppression')
+    # We verify we have one deletion
+    assert len(deletions) == 1
+    # We verify that the deletion is of type paragraph
+    assert deletions[0]['type'] == 'paragraph'
+
+def check_insertion(result):
+    breakpoint()
+
+@pytest.mark.parametrize("v1,v2,check_function,expected_exception", [
+    ('base', 'insertion', check_insertion, None),
+    ('base', 'double', check_addition_paragraph, None),
+    ('double', 'base', check_paragraph_deletion, None),
+    ('base', 'base', None, p.IdenticalFilesException),
+    #('base', 'double_mixed', check_addition_paragraph_and_text, None),
+])
+def test_synthetic(v1, v2, check_function, expected_exception):
+    
+    base_dir = TEST_DATA_DIR / 'RAW' /f'{v1}_{v2}'
+    f1 = base_dir/f"{v1}.xml"
+    f2 = base_dir /f"{v2}.xml"
+
+    f1.parent.mkdir(parents=True, exist_ok=True)
+
+    # Example usage of the temporary files
+    txt1 = test_strings[v1]
+    txt2 = test_strings[v2]
+    f1.write_text(synthetic_xml_template.format(body=txt1, version='v1'))
+    f2.write_text(synthetic_xml_template.format(body=txt2, version='v2'))
+
+
+    parameters = md.Parameters(
+        lg_pivot=7,
+        ratio=15,
+        seuil=50,
+        car_mot=True,  # always,
+        case_sensitive=True,
+        sep_sensitive=True,
+        diacri_sensitive=True,
+        algo="HIS",
+    )
+    test_dir = f1.parent
+    output_filepath = test_dir / f"{v1}_{v2}.output.xml"
+    func = functools.partial(p.process, source_filepath=f1, target_filepath=f2, parameters=parameters, output_filepath=output_filepath)
+    # Check if an exception is expected
+    if expected_exception:
+        with pytest.raises(expected_exception):
+            func()
+        return
+    Result = namedtuple("Result", "txt1 txt2 out")
+    func()
+    result = Result(txt1=txt1,txt2=txt2, out=p.read(output_filepath))
+    if check_function:
+        check_function(result)
+    # Add assertions or other test logic as needed
+
+
+
+
+@pytest.mark.parametrize("text,expected", [
+    ['hello','hello']
+
+])
+def test_xml2mdedi(text, expected):
+
+    pass
+    # Add assertions or other test logic as needed

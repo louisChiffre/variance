@@ -38,6 +38,10 @@ Utilisez le script `diff.py` pour générer des différences entre des fichiers 
 ```bash
 python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFille/2vf.xml --lg_pivot 7 --ratio 15 --seuil 50 --case-sensitive --diacri-sensitive --output-xml test.xml
 ```
+Les séparateurs utilisés par Medite peuvent être spécifié avec l'argument sep.
+```bash
+python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFille/2vf.xml --lg_pivot 7 --ratio 15 --seuil 50 --case-sensitive --diacri-sensitive --output-xml test.xml --sep $' !\r,\n:\t;-?"\'`()….»«'
+```
 
 #### Options Disponibles
 - `source_filenames` (arguments) : Les chemins des fichiers TEI XML à comparer. Ils doivent exister dans votre système de fichiers.

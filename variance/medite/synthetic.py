@@ -334,8 +334,9 @@ class BiBlocList(object):
     def evaluation(self, c1=0.5, c2=0.35, c3=0.15):
         """Evalue l'alignement"""
         assert c1 + c2 + c3 == 1
-        # sep = """ !\r,\n:\t;-?"'`’()"""
-        sep = """ !\r,\n:\t;-?"'`\\u2019()"""
+        # sep = """ !\r,\n:\t;-?"'`ï¿½()"""
+        #sep_ = """ !\r,\n:\t;-?"'`\\u2019()"""
+        sep = self.parameters.sep
         seq1 = self.lgSource
         seq2 = len(self.texte) - seq1
         # assert len(self.liste)==1754

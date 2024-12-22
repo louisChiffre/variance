@@ -24,9 +24,13 @@ default = md.DEFAULT_PARAMETERS
 @click.option("--lg_pivot", default=default.lg_pivot)
 @click.option("--ratio", default=default.ratio)
 @click.option("--seuil", default=default.seuil)
+@click.option("--sep", default=default.sep)
 @click.option("--case-sensitive/--no-case-sensitive", default=default.case_sensitive)
 @click.option(
     "--diacri-sensitive/--no-diacri-sensitive", default=default.diacri_sensitive
+)
+@click.option(
+    "--sep", default=default.sep
 )
 @click.option("--output-xml", type=click.Path(exists=False), default="informations.xml")
 def run(
@@ -35,10 +39,13 @@ def run(
     lg_pivot,
     ratio,
     seuil,
+    sep,
     case_sensitive,
     diacri_sensitive,
     output_xml,
 ):
+    for c in sep:
+        logger.info(f'using sep={repr(c)}')
     algo = default.algo
     sep_sensitive = default.sep_sensitive
     car_mot = default.car_mot
@@ -52,14 +59,15 @@ def run(
         target_filename
     ), f"source filename [{source_filename}] and target filename [{target_filename}] are not in the same directory"
     parameters = md.Parameters(
-        lg_pivot,
-        ratio,
-        seuil,
-        car_mot,
-        case_sensitive,
-        sep_sensitive,
-        diacri_sensitive,
-        algo,
+        lg_pivot=lg_pivot,
+        ratio=ratio,
+        seuil=seuil,
+        car_mot=car_mot,
+        case_sensitive=case_sensitive,
+        sep_sensitive=sep_sensitive,
+        diacri_sensitive=diacri_sensitive,
+        algo=algo,
+        sep=sep,
     )
 
     source_filepath = pathlib.Path(source_filename)

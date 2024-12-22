@@ -35,7 +35,22 @@ escape_characters_mapping = {
     "»": "'»",
     "«": "«'",
 }
+
+escape_characters_regex = re.escape("|".join(escape_characters_mapping.keys()))
 newline = """'|""" + "\n"
+
+REPLACE = namedtuple("REPLACE", "start end old new")
+INSERT = namedtuple("INSERT", "start text")
+TEXT = namedtuple('TEXT', 'content replacements insertions')
+
+def xml2medite(text)->TEXT:
+    """transform xml text to medite text"""
+    def gen():
+        yield from escape_characters_mapping.keys()
+        yield from ['<p>','</p>']
+    regex = re.escape("|".join(gen()))
+
+    
 
 
 # TODO rename function to remove_medite_annotations
@@ -131,7 +146,7 @@ def remove_medite_annotations(txt: str) -> str:
     return txt
 
 
-Output = namedtuple("Output", "id txt soup path tree pos2annotation")
+Output = namedtuple("Output", "id txt soup path changes pos2annotation")
 
 
 def to_txt(filepath: pathlib.Path):
@@ -227,7 +242,7 @@ def to_xml_flat(filepath: pathlib.Path):
         for t, x_iter in itertools.groupby(xx, type):
             if t == bs4.element.NavigableString:
                 k = "".join(x_iter)
-                # we remove the newline
+                # we remove the new line
                 if k.strip():
                     yield k
             else:
@@ -243,77 +258,12 @@ def to_xml_flat(filepath: pathlib.Path):
 def xml2txt(filepath: pathlib.Path) -> Output:
     """extract text from xml and apply pre-processing step to text"""
     soup = read(filepath=filepath)
-
-    # we keep track of the character range of each paragraph
-    # 0-51   -- paragraph 1
-    # 52-108 -- paragramp 2
-    # ...
-    # this will be important when we transform back the medite output to tei
-    # we use an interval tree to keep track of the mapping
-    tree = IntervalTree()
-
-    # Find all <p> elements
     body = soup.find("body")
-    # Add unique IDs to each element
-    for i, element in enumerate(soup.find_all("p")):
-        element["id"] = f"#{i}"
-    pos2annotation = {}
+    text=''.join([str(k) for k in body.find_all("div")])
+    logger.info(f'transform {filepath} to text')
+    x = op.xml2medite(text)
+    txt = x.text
 
-    # go through p elements in the body apply the transformations and return texts
-    def gen():
-        cursor = 0
-        for div in body.find_all("div"):
-            p_elements = div.find_all("p")
-            for p in p_elements:
-
-                for x in medite_special_characters:
-                    if x in str(p):
-                        print(f'f"special character {repr(x)} found in {p}"')
-
-                    # assert x not in str(p), f"special character {repr(x)} found in {p}"
-                # for each paragraph, we construct the text
-                # first pass, we apply the transformations and yield the text allong witht the annotations
-                def gen_p():
-                    # we need to keep track of the characters inside the paragraph to be abl to replace the pb taag afterwards
-                    for content in p.contents:
-                        if content.name == "emph":
-                            text = content.get_text()
-                            for x in medite_special_characters:
-                                if x in text:
-                                    raise NotImplementedError(
-                                        f"special character {repr(x)} found in emphasized text {text}"
-                                    )
-                            yield f"\\{text}\\"
-                        elif content.name == "pb":
-                            # pos2annotation[cursor + tag_cursor] = content
-                            yield content
-                        elif isinstance(content, str):
-                            yield add_escape_characters(content)
-                        elif content.name is None and content.string:
-                            yield add_escape_characters(content.string)
-                        # tag_cursor += len(str(content.get_text))
-                    yield newline
-
-                # second pass
-                txt = ""
-                paragraph_cursor = 0
-                for x in gen_p():
-                    if isinstance(x, str):
-                        paragraph_cursor += len(x)
-                        txt = txt + x
-                    else:
-                        pos2annotation[cursor + paragraph_cursor] = x
-
-                assert len(txt) == paragraph_cursor
-
-                # we then update the mapping character range -> paragraph
-                old_cursor, cursor = cursor, cursor + paragraph_cursor
-                # store the character range of the paragraphO
-                tree[old_cursor:cursor] = p
-                yield txt
-
-    txts = list(gen())
-    txt = "".join(txts)
 
     # we store the txt file in txt
     txt_filepath = filepath.with_suffix(".medite.txt")
@@ -327,9 +277,9 @@ def xml2txt(filepath: pathlib.Path) -> Output:
         id=soup.find("TEI")["xml:id"],
         txt=txt,
         soup=soup,
-        tree=tree,
+        changes=x,
         path=filepath,
-        pos2annotation=pos2annotation,
+        pos2annotation=None,
     )
 
 
@@ -408,7 +358,10 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
     assert txt2 == z2.txt
     return Result(appli=appli, deltas=deltas)
 
+class IdenticalFilesException(Exception):
+    pass
 
+from variance import operations as op
 def process(
     source_filepath: pathlib.Path,
     target_filepath: pathlib.Path,
@@ -428,9 +381,13 @@ def process(
     """
     """the main function"""
     # we transform the xml in text with medite annotations
+    logger.info(f"using [{repr(parameters.sep)}]")
     logger.info(f"process {str(source_filepath)=} {str(target_filepath)=}")
+    
     z1 = xml2txt(source_filepath)
     z2 = xml2txt(target_filepath)
+    if z1.txt == z2.txt:
+        raise IdenticalFilesException(f"{source_filepath} and {target_filepath} are identical")
 
     # create the skeleton of the xml
     root = ET.Element(
@@ -480,6 +437,8 @@ def process(
     html_output_filename = output_filepath.with_suffix(".html")
     logger.info(f"generating classic html output {html_output_filename}")
     make_html_output(appli=res.appli, html_filename=html_output_filename)
+    logger.info('process completed')
+    return
 
     # we don't want the script to stop if there is an ntld data issue
     try:
@@ -519,6 +478,7 @@ def process(
 
     def add_list(z: Output, start, end, attributes, name):
         """add change to list of change for the list tags of mediteData"""
+        breakpoint()
         txts = get_xml_text_from_range(z=z, start=start, end=end)
 
         list_elem = lists[name]
@@ -535,54 +495,12 @@ def process(
         """creates a metamark"""
         return z1.soup.new_tag("metamark", function=function, target=target)
 
-    def zip_paragraphs(start: int, end: int):
-        """given a charactr range, returns the associated paragraphs and texts"""
-        txt = z1.txt[start:end]
 
-        # we know for each paragraph the character range as it is stored in the interval tree
-        # given a character range, a pragraph, we retrieve the text associated
-        # here is a diagram to explain the process
-        # paragraph: ------xxxxxxxxxxxxxxxxxx-------
-        # text     : ------------xxxxxxxxxxxxxxxx---
-        # result   : ------------xxxxxxxxxxxx-------
-        def gen_txts():
-            for k in sorted(z1.tree[start:end], key=lambda x: x.begin):
-                start_ = max(k.begin, start)
-                end_ = min(k.end, end)
-                yield get_xml_text_from_range(z=z1, start=start_, end=end_)
 
-        para_txts = list(gen_txts())
-        # breakpoint()
 
-        para_htms = sorted(z1.tree[start:end], key=lambda x: x.begin)
 
-        ids = [k.data["id"] for k in para_htms]
-        logger.debug(f"paragraphs between {start} end {end}".center(80, "#"))
-        logger.debug(f"text: [{txt}]")
-        for i, x in enumerate(zip_longest(para_txts, para_htms)):
-            t, h = x
-            logger.debug(f"paragraph {i}".center(80, "*"))
-            logger.debug(f"text:\n[{t}]\n------\n")
-            if h is not None:
-                logger.debug(f"html:\n{h.data}\n------\n")
-            else:
-                logger.debug(f"html:\n{h}\n------\n")
-        logger.debug(f"end paragraph".center(80, "#"))
-        assert len(para_txts) >= len(para_htms)
-        assert len(para_htms) > 0
-        # breakpoint()
 
-        yield from zip(ids, para_htms, para_txts)
 
-    # we set the current paragraph, this will used when inserting
-    paragraph_stack = [sorted(z1.tree, key=lambda x: x.begin)[0].data]
-
-    def reset_paragraph(id, zp):
-        # print(updated)
-        if not id in updated:
-            logger.debug(f"resetting paragraph {id} \n{zp}\n")
-            zp.string = ""
-            updated.add(id)
 
     def append_tag(tag, zp):
         logger.debug(f"appending {tag=} on {zp}")
@@ -645,16 +563,20 @@ def process(
             logger.debug("BLOC COMMUN".center(120, "$"))
             id_v1 = f"v1_{z.a_start}_{z.a_end}"
             id_v2 = f"v2_{z.b_start}_{z.b_end}"
+        
             tag = z1.soup.new_tag(
                 "anchor", **{"xml:id": id_v1, "corresp": id_v2, "function": "bc"}
             )
-            append_text(tag=tag, start=z.a_start, end=z.a_end)
+            z1.changes.insertions.append(op.Insertion(start=z.a_start, text=str(tag)))
+            #append_text(tag=tag, start=z.a_start, end=z.a_end)
         elif isinstance(z, S):
             logger.debug("SUPPRESION".center(120, "$"))
             target_id = f"v1_{z.start}_{z.end}"
             tag = metamark(function="del", target=target_id)
-            append_text(tag=tag, start=z.start, end=z.end)
+            breakpoint()
+            z1.changes.insertions.append(op.Insertion(start=z.start, text=str(tag)))
             txt = z1.txt[z.start : z.end]
+            breakpoint()
             if txt.strip() == "":
                 add_list(
                     z=z1,
@@ -676,9 +598,12 @@ def process(
             logger.debug("INSERTION".center(120, "$"))
             target_id = f"v2_{z.start}_{z.end}"
             tag = metamark(function="add", target=target_id)
-            current_paragraph = paragraph_stack[-1]
-            reset_paragraph(id=current_paragraph["id"], zp=current_paragraph)
-            append_tag(tag=tag, zp=current_paragraph)
+            z1.changes.insertions.append(op.Insertion(start=z.start, text=str(tag)))
+            # breakpoint()
+            # current_paragraph = paragraph_stack[-1]
+            # reset_paragraph(id=current_paragraph["id"], zp=current_paragraph)
+            # append_tag(tag=tag, zp=current_paragraph)
+            # breakpoint()
             add_list(
                 z=z2,
                 start=z.start,
@@ -689,7 +614,7 @@ def process(
 
         elif isinstance(z, DA):
             logger.debug("MOVE A".center(120, "$"))
-            # breakpoint()
+            breakpoint()
             key = z1.txt[z.start : z.end]
             # we retrieve the corresponding block in the second text
             # special case when a moved block is part of a replacement
@@ -715,6 +640,7 @@ def process(
             )
         elif isinstance(z, DB):
             logger.debug("MOVE B".center(120, "$"))
+            breakpoint()
             # we retrieve the reference to the moved fragment
             txt = z2.txt[z.start : z.end]
             assert txt in txt2delta, f"Cannot find a delta matching with {txt=}"
@@ -731,6 +657,7 @@ def process(
             tag = z1.soup.new_tag(
                 "metamark", function="subst", target=id_v1, corresp=id_v2
             )
+            breakpoint()
             append_text(tag=tag, start=z.a_start, end=z.a_end)
             add_list(
                 z=z2,
@@ -741,19 +668,17 @@ def process(
             )
         else:
             raise NotImplementedError(f"Element of type {z} is not supported")
-
+    #breakpoint()
     # let's do some cleanups
-    for element in z1.soup.find_all():
-        if "id" in element.attrs and element["id"].startswith("#"):
-            del element["id"]
-    # post processing
+    # for element in z1.soup.find_all():
+    #     if "id" in element.attrs and element["id"].startswith("#"):
+    #         del element["id"]
+    # # post processing
     # remove newline
     # remove_newline_annotation(z1.soup.find("body"))
 
-    txt_raw = str(z1.soup.find("body"))
-    # breakpoint()
-    txt = remove_medite_annotations_simple(txt_raw)
-    root.append(ET.fromstring(txt))
+    txt_raw = op.medite2xml(z1.changes)
+    root.append(ET.fromstring(txt_raw))
     tree = ET.ElementTree(root)
     tree.write(output_filepath, encoding="utf-8", xml_declaration=True, method="xml")
 
@@ -771,6 +696,8 @@ def process(
     logger.info(f"Write output to {str(output_filepath)}")
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
+    return
+    breakpoint()
 
     # we verfiy the old and the new xml gives the same original text
     x2 = [str(k) for k in to_xml_flat(output_filepath)]
