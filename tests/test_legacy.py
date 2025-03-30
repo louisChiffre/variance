@@ -1,3 +1,4 @@
+import functools
 from variance.medite import medite as md
 from variance.medite import utils as ut
 import numpy as np
@@ -9,6 +10,8 @@ import xml.etree.ElementTree as ET
 from os.path import join, dirname, exists
 import textwrap as tw
 import itertools as it
+
+from variance.processing import calc_revisions
 
 # def test_get_changes():
 #     from utils import utils as ut
@@ -183,8 +186,13 @@ def test_invariance(xml_filename):
     check(xml_filename)
 
 
+# <p>les poules du couvent mangent du grain</p>
+# <p>les poules</p><p>mangent du grain</p>
+# les poules manges du grain\n
+
+
 def gen_separator_cases():
-    Case = namedtuple("Case", "parameters txt1 txt2 result")
+    Case = namedtuple("Case", "parameters txt1 txt2 expected check")
     vanilla_parameters = md.Parameters(
         lg_pivot=7,
         ratio=15,
@@ -194,10 +202,95 @@ def gen_separator_cases():
         sep_sensitive=True,
         diacri_sensitive=True,
         algo="HIS",
-        sep=""" !\r,\n:\t;-?"'`\\u2019()"""
+        sep=""" !\r,\n:\t;-?"'`()""",
+    )
+
+    def no_replacement(x):
+        # we verify we have only insertions and common blocks
+        z = {k[1].type for k in x}
+        assert z == {"BC", "I"}
+        
+    yield Case(
+        parameters=vanilla_parameters,
+        txt1="""La Fondation de l’Hermitage présente une collection réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle. Avec son esprit libre et anticonformiste, ce""",
+        txt2="""La Fondation de l’Hermitage présente une collection réunie à partir des années 1950 par Oscar Ghez.'|
+Un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle.'|
+Avec son esprit libre et anticonformiste, ce
+""",
+        expected=None,
+        check=no_replacement,
+    )
+
+    # Adding the double quotes to the separator list, we expect the same behavior
+    # BC  |La Fondation de l’Hermitage présente une                                        |La Fondation de l’Hermitage présente une                                        |  BC
+    #     |                                                                                |«                                                                               |   I
+    # BC  |collection                                                                      |collection                                                                      |  BC
+    #     |                                                                                |»                                                                               |   I
+    # BC  | réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine        | réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine        |  BC
+    #     |tunisienne qui s’intéressait à la                                               |tunisienne qui s’intéressait à la                                               |
+    #     |                                                                                |«                                                                               |   I
+    # BC  |peinture de la fin du XIXe siècle et du début du XXe siècle                     |peinture de la fin du XIXe siècle et du début du XXe siècle                     |  BC
+    #     |                                                                                |»                                                                               |   I
+    # BC  |. Avec son esprit libre et anticonformiste, ce                                  |. Avec son esprit libre et anticonformiste, ce                                  |  BC
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=""" !\r,\n:\t;-?"\'`()….»«"""),
+        txt1="""La Fondation de l’Hermitage présente une collection réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle. Avec son esprit libre et anticonformiste, ce""",
+        txt2="""La Fondation de l’Hermitage présente une «collection» réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine tunisienne qui s’intéressait à la «peinture de la fin du XIXe siècle et du début du XXe siècle». Avec son esprit libre et anticonformiste, ce""",
+        expected=[
+            ("BC", "La Fondation de l’Hermitage présente une "),
+            ("I", "«"),
+            ("BC", "collection"),
+            ("I", "»"),
+            (
+                "BC",
+                " réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine "
+                "tunisienne qui s’intéressait à la ",
+            ),
+            ("I", "«"),
+            ("BC", "peinture de la fin du XIXe siècle et du début du XXe siècle"),
+            ("I", "»"),
+            ("BC", ". Avec son esprit libre et anticonformiste, ce"),
+        ],
+        check=no_replacement,
+    )
+    return
+
+
+    # newline!
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=""),
+        # <p>les poules vertes couvent le samedi</p>#
+        txt1="""Les poules vertes couvent le samedi""",
+        # <p>les poules vertes</p><p>couvent le samedi</p>
+        txt2="""Les poules vertes'|\ncouvent le samedi""",
+        result=None,
     )
     yield Case(
-        parameters=vanilla_parameters._replace(sep=''),
+        parameters=vanilla_parameters,
+        txt1="""Les poules vertes couvent le samedi""",
+        txt2="""Les poules vertes'|\ncouvent le samedi""",
+        result=None,
+    )
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=""),
+        txt1="""Les poules vertes couvent le samedi""",
+        txt2="""Les poules vertes\ncouvent le samedi""",
+        result=None,
+    )
+    yield Case(
+        parameters=vanilla_parameters._replace(sep="\n"),
+        txt1="""Les poules vertes couvent le samedi""",
+        txt2="""Les poules vertes\ncouvent le samedi""",
+        result=None,
+    )
+    yield Case(
+        parameters=vanilla_parameters,
+        txt1="""Les poules vertes, couvent le samedi""",
+        txt2="Les poules couvent le samedi",
+        result=None,
+    )
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=""),
         txt1="""Les poules vertes, couvent le samedi""",
         txt2="Les poules couvent le samedi",
         result=None,
@@ -210,7 +303,7 @@ def gen_separator_cases():
     )
     return
     yield Case(
-        parameters=vanilla_parameters._replace(sep=''),
+        parameters=vanilla_parameters._replace(sep=""),
         txt1="""Les poules, couvent le samedi""",
         txt2="Les poules couvent le samedi",
         result=None,
@@ -234,8 +327,25 @@ def test_separator(case):
     appli = md.DiffTexts(
         chaine1=case.txt1, chaine2=case.txt2, parameters=case.parameters
     )
+    sentence_lookup = ut.make_sentence_lookup(appli.bbl.texte)
+    ut.pretty_print(appli)
+    W = 80
+
+    f = functools.partial(ut.block2fragment, appli, sentence_lookup)
+    x = [(f(a), f(b)) for a, b in appli.bbl.liste]
+    if case.expected:
+        actual = [(k[1].type, k[1].txt) for k in x]
+        assert actual == case.expected
+
+    if case.check:
+        case.check(x)
+
+    # breakpoint()
+    # for a, b in appli.bbl.liste:
+    #     fa = f(a)
+    #     fb = f(b)
+    #     breakpoint()
     # to examine manually
-    # ut.pretty_print(appli)
 
 
 if __name__ == "__main__":
