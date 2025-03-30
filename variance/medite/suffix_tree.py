@@ -318,7 +318,7 @@ class GeneralisedSuffixTree(object):
         return seq_repeat
 
     # mode mot ou char
-    def get_MEM_index_chaine3(self, carOuMot, min_size=1, eliminRecouv=True):
+    def get_MEM_index_chaine3(self, carOuMot, separators, min_size=1, eliminRecouv=True):
         just_keep_words = carOuMot
         """ just_keep_words: si Vrai, on rogne les homologies de fa�on � n'avoir que des mots 
         (ou suites de mots) entiers 
@@ -373,8 +373,9 @@ class GeneralisedSuffixTree(object):
         # par Word avant les ponctuations faibles : ; ! ? et guillemets
         # sep = u""". !\r,\n:\t;-?"'`�()�""" #liste des s�parateurs
         # �
-        sep = """. !\r,\n:\t;-?"'`\\u2019()�"""  # liste des s�parateurs
-        sep = """. !\r,\n:\t;-?"'`\u2019()�"""
+        # sep = """. !\r,\n:\t;-?"'`\\u2019()�"""  # liste des s�parateurs
+        # sep_ = """. !\r,\n:\t;-?"'`\u2019()�"""
+        sep = separators
         # if len(self.sequences[1])==20951:
         #    assert len([k for k in self.sequences[1] if k in sep]) == 4725
         # on ne garde que les chaine de taille > min et r�p�t�es

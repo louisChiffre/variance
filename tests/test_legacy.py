@@ -209,19 +209,35 @@ def gen_separator_cases():
         # we verify we have only insertions and common blocks
         z = {k[1].type for k in x}
         assert z == {"BC", "I"}
-        
+
     yield Case(
-        parameters=vanilla_parameters,
+        parameters=vanilla_parameters._replace(sep=""" !\r,\n:\t;-?"\'`()….»«"""),
         txt1="""La Fondation de l’Hermitage présente une collection réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle. Avec son esprit libre et anticonformiste, ce""",
-        txt2="""La Fondation de l’Hermitage présente une collection réunie à partir des années 1950 par Oscar Ghez.'|
-Un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle.'|
+        txt2="""La Fondation de l’Hermitage présente une collection réunie à partir des années 1950 par Oscar Ghez.
+Un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle.
 Avec son esprit libre et anticonformiste, ce
 """,
-        expected=None,
-        check=no_replacement,
+        expected=[
+            (
+                "BC",
+                "La Fondation de l’Hermitage présente une collection réunie à partir des "
+                "années 1950 par Oscar Ghez",
+            ),
+            ("R", ".\nUn"),
+            (
+                "BC",
+                " industriel d’origine tunisienne qui s’intéressait à la peinture de la fin "
+                "du XIXe siècle et du début du XXe siècle.",
+            ),
+            ("", ""),
+            ("I", "\n"),
+            ("BC", "Avec son esprit libre et anticonformiste, ce"),
+            ("I", "\n"),
+        ],
+        check=None,
     )
 
-    # Adding the double quotes to the separator list, we expect the same behavior
+    # double quotes addition should be considered as such, i.e we expect no replacement in the case below, only insertions
     # BC  |La Fondation de l’Hermitage présente une                                        |La Fondation de l’Hermitage présente une                                        |  BC
     #     |                                                                                |«                                                                               |   I
     # BC  |collection                                                                      |collection                                                                      |  BC
@@ -254,7 +270,6 @@ Avec son esprit libre et anticonformiste, ce
         check=no_replacement,
     )
     return
-
 
     # newline!
     yield Case(

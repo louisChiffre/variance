@@ -35,75 +35,7 @@ class Recouvrement(object):
         self.lg_texte2 = len(self.texte) - self.lg_texte1
         self.min_size = min_size
 
-    def resoudre_recouvrement(self, I):
-        """part d'un intervalle qui correspond � un recouvrement
-        et trouve une cesure judicieuse (par exemple un blanc)
-        On coupera sur cette cesure
-        I: [occ_debut, occ_fin, chaine_anterieure, chaine_posterieure]
 
-        Attention !! pb dans BBL.extractDeplacements(), ne respecte plus l'assertion
-        d'ordre si on utilise cette fonction"""
-        sep = " .-,!?:;\r\n\t"
-        # breakpoint()
-        tailleChAnt = I[2][1] - I[2][0]
-        tailleChPost = I[3][1] - I[3][0]
-        res = I[0]
-        match = False
-        # print 'ant:'+self.texte[I[2][0]:I[2][1]]+':'+str(I[2])
-        # print 'post:'+self.texte[I[3][0]:I[3][1]]+':'+str(I[3])
-        if tailleChAnt < tailleChPost:
-            # si la chaine ant�rieure est + petite, on privil�gie une coupure dans cettte chaine
-            if I[0] == 0 or I[0] == self.lg_texte1 or self.texte[I[0] - 1] in sep:
-                res = I[0]
-                match = True
-            elif (
-                I[1] == (self.lg_texte1 - 1)
-                or I[1] == (self.lg_texte1 + self.lg_texte2 - 1)
-                or self.texte[I[1]] in sep
-            ):
-                res = I[1]
-                match = True
-        else:  # sinon dans l'autre
-            if (
-                I[1] == (self.lg_texte1 - 1)
-                or I[1] == (self.lg_texte1 + self.lg_texte2 - 1)
-                or self.texte[I[1]] in sep
-            ):
-                res = I[1]
-                match = True
-            elif I[0] == 0 or I[0] == self.lg_texte1 or self.texte[I[0] - 1] in sep:
-                res = I[0]
-                match = True
-
-        if not match:  # sinon, on parcours tout le recouvrement dans un sens ou l'autre
-            if tailleChAnt <= tailleChPost:
-                L = list(range(I[0], I[1] + 1))
-            else:
-                L = list(range(I[1], I[0] - 1, -1))
-            res = L[0]
-            # L = range(I[0], I[1]+1)
-            # for x in L:
-            #    if self.texte[x] == ' ':
-            #        res = x
-            #        match = True
-            if not match:
-                for x in L:
-                    if self.texte[x] in sep:
-                        res = x
-                        if tailleChAnt <= tailleChPost:
-                            pass  # res = max(L[0],res-1)
-                        else:
-                            res = max(res + 1, L[0])
-                        break
-        # logging.debug(self.texte[I[2][0]:I[2][1]]+' / ' +self.texte[I[3][0]:I[3][1]] +
-        #           ' / ' + self.texte[I[0]:I[1]] + ' / res='+self.texte[res-1:res+2] )
-        if res < 0:
-            res = 0
-        elif res > self.lg_texte1 + self.lg_texte2:
-            res = self.lg_texte1 + self.lg_texte2
-        assert 0 <= res <= self.lg_texte1 + self.lg_texte2
-        # breakpoint()
-        return res
 
 
 class Recouvrement3(Recouvrement):

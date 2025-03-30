@@ -39,7 +39,6 @@ DEFAULT_PARAMETERS = Parameters(
     # Apostrophe typographique (guillemet simple fermant) : ’
     # Parenthèse ouvrante : (
     # Parenthèse fermante : )
-    # sep=""" !\r,\n:\t;-?"'`\\u2019()""",
     sep=""" !\r,\n:\t;-?"'`()""",
 
 )
@@ -64,6 +63,8 @@ class DiffTexts(object):
             return [ord(k) for k in x]
 
         if not self.parameters.diacri_sensitive:
+            raise NotImplementedError("diacri_sensitive=False not supported")
+            # TOOD verify tabin/tabout makes sense
             tabin = s2ord(
                 "�������������������������������"
             )
@@ -191,6 +192,7 @@ class DiffTexts(object):
 
         logging.log(5, "Debut de l'alignement")
         deb_al = time.perf_counter()
+        
 
         aligneur = alignement.AlignAstarRecur(
             l_texte1=self.lg_texte1,
@@ -198,6 +200,7 @@ class DiffTexts(object):
             long_min_pivots=self.parameters.lg_pivot,
             algoAlign=self.parameters.algo,
             sep=self.parameters.sep_sensitive,
+            separators=self.parameters.sep,
         )
 
         self.occs_deplaces, self.blocsCommuns = aligneur.run(self.texte1, self.texte2)

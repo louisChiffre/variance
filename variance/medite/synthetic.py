@@ -31,30 +31,30 @@ import numpy as Numeric
 class BiBlocList(object):
     """Construit une liste de Bibloc
 
-    Un Bibloc est un tuplet de 2 Bloc alignés.
-    Un Bloc est un objet (type,début,fin,listeDep) ou None si il est vide.
+    Un Bibloc est un tuplet de 2 Bloc alignï¿½s.
+    Un Bloc est un objet (type,dï¿½but,fin,listeDep) ou None si il est vide.
     type est soit I,S,R,BC
     debut et fin sont les limites du bloc dans la chaine de texte.
-    listeDep est une liste éventuellement vide listant tous les intervalles de déplacement compris dans le bloc.
-    Les blocs I et S sont alignés forcément avec des blocs None.
-    Les blocs R et BC sont alignés forcément avec des blocs respectivement R et BC."""
+    listeDep est une liste ï¿½ventuellement vide listant tous les intervalles de dï¿½placement compris dans le bloc.
+    Les blocs I et S sont alignï¿½s forcï¿½ment avec des blocs None.
+    Les blocs R et BC sont alignï¿½s forcï¿½ment avec des blocs respectivement R et BC."""
 
     def __init__(self, resultat, parameters, depOrdonnes=True):
         """Constructeur
 
-        Si on utilise l'ancien algo d'identification des remplacements et déplacements,
-        on peut avoir des blocs présents uniquement dans resultat.getListeDeplacements().
-        Ceux-ci sont alors ajoutés comme des S ou des I.
+        Si on utilise l'ancien algo d'identification des remplacements et dï¿½placements,
+        on peut avoir des blocs prï¿½sents uniquement dans resultat.getListeDeplacements().
+        Ceux-ci sont alors ajoutï¿½s comme des S ou des I.
 
-        dd: si depOrdonnes=False, pas d'assertion d'ordre sur les déplacement-> recherche d'un dep en O(n) dans __decoreDep1()
-            sinon si depOrdonnes=True, assertion d'ordre respectée -> recherche en O(log n) dans __decoreDep2()
+        dd: si depOrdonnes=False, pas d'assertion d'ordre sur les dï¿½placement-> recherche d'un dep en O(n) dans __decoreDep1()
+            sinon si depOrdonnes=True, assertion d'ordre respectï¿½e -> recherche en O(log n) dans __decoreDep2()
 
         pre: isinstance(resultat,Donnees.resultatAppli.Resultat)
              isinstance(planTravail,Donnees.planTravail.PlanTravail)"""
         self.depOrdonnes = depOrdonnes
         self.texte = resultat.getTextesConcatenes()
         self.lgSource = resultat.getLgSource()
-        self.parameters = parameters  # sert seulement à l'affichage du rapport
+        self.parameters = parameters  # sert seulement ï¿½ l'affichage du rapport
 
         liste = []
         lBCT1 = resultat.getBlocsCommunsT1()
@@ -88,7 +88,7 @@ class BiBlocList(object):
         ):
             assert len_lBCT1 == len_lBCT2
             assert len_lRempT1 == len_lRempT2
-            # if i%1000==0: logging.debug('itération %d',i)
+            # if i%1000==0: logging.debug('itï¿½ration %d',i)
             i += 1
             # pour ajouter un bloc sup soit les 2 listes sont vides
             # soit BC vides et <= dep car dans ce cas le dep sera inclus dans le sup
@@ -104,7 +104,7 @@ class BiBlocList(object):
                     and lSup[0][0] <= lDepT1[0][0]
                 )
             ):  # ajout sup
-                # décoration avec les déplacements
+                # dï¿½coration avec les dï¿½placements
                 depInBloc1 = self.__decoreDep(lSup[0], lDepT1)
                 # ajout du bibloc
                 liste.append((("S", lSup[0][0], lSup[0][1], depInBloc1), None))
@@ -122,7 +122,7 @@ class BiBlocList(object):
                     and lIns[0][0] <= lDepT2[0][0]
                 )
             ):  # ajout ins
-                # décoration avec les déplacements
+                # dï¿½coration avec les dï¿½placements
                 depInBloc2 = self.__decoreDep(lIns[0], lDepT2)
                 # ajout du bibloc
                 liste.append((None, ("I", lIns[0][0], lIns[0][1], depInBloc2)))
@@ -186,9 +186,9 @@ class BiBlocList(object):
                     or (lRempT1[0][0] < lBCT1[0][0] and lRempT2[0][0] < lBCT2[0][0])
                 )
             ):
-                # décoration avec les déplacements
+                # dï¿½coration avec les dï¿½placements
                 depInBloc1 = self.__decoreDep(lRempT1[0], lDepT1)
-                # décoration avec les déplacements
+                # dï¿½coration avec les dï¿½placements
                 depInBloc2 = self.__decoreDep(lRempT2[0], lDepT2)
                 liste.append(
                     (
@@ -223,12 +223,12 @@ class BiBlocList(object):
             self.extractRemplacements()
 
     def __decoreDep(self, intervalle, lDep):
-        """Extrait de la liste générale des déplacement lDep les déplacements se situant à l'intérieur du bloc
+        """Extrait de la liste gï¿½nï¿½rale des dï¿½placement lDep les dï¿½placements se situant ï¿½ l'intï¿½rieur du bloc
 
         Attention !! modifie lDep et retourne res2
-        Ici assertion d'ordre sur les dep, recherhe d'un dep en temps linéaire
+        Ici assertion d'ordre sur les dep, recherhe d'un dep en temps linï¿½aire
         comme lDep[0] est toujours >= intervalle (parce que l'ordre est maintenu par la
-        fonction appelante), on commence la recherche à partir de là
+        fonction appelante), on commence la recherche ï¿½ partir de lï¿½
         """
         if len(lDep) == 0:
             return []
@@ -245,10 +245,10 @@ class BiBlocList(object):
         return res2
 
     def extractRemplacements(self):
-        """Recherche les S et I correspondant au critère de transformation en R et les convertit.
+        """Recherche les S et I correspondant au critï¿½re de transformation en R et les convertit.
 
         Convertit chaque paire de bibloc (S,None) et (None,I) se suivant en un bibloc (R,R)
-        Modifie directement self.liste plutôt que de recréer une nouvelle liste
+        Modifie directement self.liste plutï¿½t que de recrï¿½er une nouvelle liste
         ce qui est memory expensive"""
         if len(self.liste) == 0:
             return
@@ -256,11 +256,11 @@ class BiBlocList(object):
         i = len(self.liste) - 2
         while i >= 0:
             if i % 1000 == 0:
-                logging.debug("itérationR %d", i)
+                logging.debug("itï¿½rationR %d", i)
             biBloc = self.liste[i]  # bibloc courant
             biBlocSuiv = self.liste[i + 1]  # bibloc suivant
             # on cherche un biblox S et un bibloc I qui se suivent et compatilbes
-            # pour être transformés en (R,R)
+            # pour ï¿½tre transformï¿½s en (R,R)
             if (
                 biBloc[0] is not None
                 and biBloc[0][0] == "S"
@@ -282,7 +282,7 @@ class BiBlocList(object):
 
     def toResultat(self):
         """Transfomre la liste de biblocs en un Resultat
-        Attention !! la liste des PAIRES de blocs déplacés n'est pas remplie"""
+        Attention !! la liste des PAIRES de blocs dï¿½placï¿½s n'est pas remplie"""
         supp = []
         ins = []
         rempT1 = []
@@ -319,8 +319,8 @@ class BiBlocList(object):
                     # changement depT2.extend(B2[3])
                 if B2[3] != []:
                     depT2.append((B2[3][0][0], B2[3][0][1]))
-        # on extend pour former les listes des 2 fichiers pour éviter d'utliser
-        # la concaténation de liste qui crée une nouvelle liste
+        # on extend pour former les listes des 2 fichiers pour ï¿½viter d'utliser
+        # la concatï¿½nation de liste qui crï¿½e une nouvelle liste
         depT1.extend(depT2)
         del depT2
         rempT1.extend(rempT2)
@@ -336,6 +336,7 @@ class BiBlocList(object):
         assert c1 + c2 + c3 == 1
         # sep = """ !\r,\n:\t;-?"'`ï¿½()"""
         #sep_ = """ !\r,\n:\t;-?"'`\\u2019()"""
+        #breakpoint()
         sep = self.parameters.sep
         seq1 = self.lgSource
         seq2 = len(self.texte) - seq1
@@ -577,12 +578,12 @@ class BiBlocList(object):
         """Convertit la liste de BiBlocs en une table html
 
         Chaque Bibloc est convertit en une ligne <tr></tr> d'une table html
-        Si stream, on ecrit régulièrement dans fileBuffer la table courante et
-        on la réinitialise ensuite sinon on crée une grosse chaine que l'on renvoie"""
+        Si stream, on ecrit rï¿½guliï¿½rement dans fileBuffer la table courante et
+        on la rï¿½initialise ensuite sinon on crï¿½e une grosse chaine que l'on renvoie"""
         res = []
         i = 0
         for B1, B2 in self.liste:
-            res.append("<tr>")  # += "<tr>" # début de ligne
+            res.append("<tr>")  # += "<tr>" # dï¿½but de ligne
             # colonne gauche
             if B1 is None:
                 res.append("<td></td>")  # += "<td></td>" # bloc vide
@@ -642,7 +643,7 @@ class BiBlocList(object):
         return "".join(res)
 
     def __souligneTexte(self, bloc):
-        """Renvoie une chaine html avec le texte souligné aux caractères déplacés"""
+        """Renvoie une chaine html avec le texte soulignï¿½ aux caractï¿½res dï¿½placï¿½s"""
         if bloc[0] == "D":
             return (
                 '<span style="text-decoration: underline; font-weight: bold">'
@@ -653,10 +654,10 @@ class BiBlocList(object):
         deb = i = bloc[1]
         fin = bloc[2]
         lDep = bloc[3][:]  # on copie pour ne pas modifier la liste originale
-        # on parcours tout le bloc pour chercher les déplacements à l'intérieur de celui-ci
+        # on parcours tout le bloc pour chercher les dï¿½placements ï¿½ l'intï¿½rieur de celui-ci
         while i < fin:
-            # si le caractère courant est le début d'un déplacement
-            # <= (au lieu de ==) à cause des chevauchements de déplacements du genre ('I', 5221, 5239, [(5224, 5230), (5226, 5231), (5236, 5239)])
+            # si le caractï¿½re courant est le dï¿½but d'un dï¿½placement
+            # <= (au lieu de ==) ï¿½ cause des chevauchements de dï¿½placements du genre ('I', 5221, 5239, [(5224, 5230), (5226, 5231), (5236, 5239)])
             if len(lDep) > 0 and lDep[0][0] <= i:
                 res += (
                     '<span style="text-decoration: underline; font-weight: bold">'
@@ -669,25 +670,25 @@ class BiBlocList(object):
             elif len(lDep) > 0 and lDep[0][0] > i:
                 res += self.__keepMEP(self.texte[i : lDep[0][0]])
                 i = lDep[0][0]
-            else:  # si pas ou plus de déplacement
+            else:  # si pas ou plus de dï¿½placement
                 assert len(lDep) == 0
                 res += self.__keepMEP(self.texte[i:fin])
                 i = fin
         return res
 
     def __keepMEP(self, texte):
-        """Fonction chargée de conserver la mise en page du texte original
+        """Fonction chargï¿½e de conserver la mise en page du texte original
 
-        Remplace les retours à la ligne par des <br> et les espaces par des &nbsp;
+        Remplace les retours ï¿½ la ligne par des <br> et les espaces par des &nbsp;
 
-        Le remplacement des espaces par des nbsp est très utile pour visulaiser des
+        Le remplacement des espaces par des nbsp est trï¿½s utile pour visulaiser des
         alignements de code source mais plus discutable pour de la langue nat.
-        De même mais de façon moins importante pour les br."""
+        De mï¿½me mais de faï¿½on moins importante pour les br."""
         return texte
 
 
 class BiBlocListWD(BiBlocList):
-    """BiblocList avec type déplacement (D) autorisé"""
+    """BiblocList avec type dï¿½placement (D) autorisï¿½"""
 
     def __init__(self, resultat, parameters, depOrdonnes=True):
         BiBlocList.__init__(self, resultat, parameters, depOrdonnes)
@@ -696,11 +697,11 @@ class BiBlocListWD(BiBlocList):
         self.evaluation()
 
     def extractDeplacements(self):
-        """Extraction des déplacements
+        """Extraction des dï¿½placements
 
-        Teste les blocs insérés et supprimés.
-        Si le rapport des déplacements à l'intérieur d'un bloc est supérieur au seuil
-        Alors ce bloc est scindé en une liste de blocs (I ou S) et D
+        Teste les blocs insï¿½rï¿½s et supprimï¿½s.
+        Si le rapport des dï¿½placements ï¿½ l'intï¿½rieur d'un bloc est supï¿½rieur au seuil
+        Alors ce bloc est scindï¿½ en une liste de blocs (I ou S) et D
         Modifie directement self.liste
 
         AssertionError: 270455 ('D', 270444, 270455, []) ('D', 270450, 270455, [])"""
@@ -709,7 +710,7 @@ class BiBlocListWD(BiBlocList):
         i = len(self.liste) - 1
         while i >= 0:
             if i % 1000 == 0:
-                logging.debug("itérationD %d", i)
+                logging.debug("itï¿½rationD %d", i)
             (B1, B2) = self.liste[i]
             if B1 is not None and B1[0] == "S":  # bloc S
                 assert B2 is None
@@ -745,7 +746,7 @@ class BiBlocListWD(BiBlocList):
         len_listeDep = len(listeDep)
         prevdeb = nbDep = 0
         while len(lSupOrIns) > 0 or len(listeDep) > 0:
-            # on a ajouté tous les D, on peut ajouter le reste des (I ou S)
+            # on a ajoutï¿½ tous les D, on peut ajouter le reste des (I ou S)
             if len(listeDep) == 0:
                 for deb, fin in lSupOrIns:  # pour chaque bloc (I ou S)
                     assert prevdeb <= deb  # assertion d'ordre
@@ -757,7 +758,7 @@ class BiBlocListWD(BiBlocList):
                     else:
                         nouvelleListe.append((None, ("I", deb, fin, [])))
                 lSupOrIns = []
-            # on a ajouté tous les (I ou S), on peut ajouter les reste des D
+            # on a ajoutï¿½ tous les (I ou S), on peut ajouter les reste des D
             elif len(lSupOrIns) == 0:
                 for deb, fin in listeDep:  # pour chaque bloc D
                     assert prevdeb <= deb
@@ -795,7 +796,7 @@ class BiBlocListWD(BiBlocList):
                     )
                 listeDep.pop(0)
                 nbDep += 1
-        # les 2 listes ont du etre traitées entièrement
+        # les 2 listes ont du etre traitï¿½es entiï¿½rement
         assert len(listeDep) == len(lSupOrIns) == 0
         assert nbDep == len_listeDep
         return nouvelleListe

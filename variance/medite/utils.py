@@ -532,9 +532,10 @@ def pretty_print(appli):
                 )
             )
             if fa.type == "R":
-                print(("context A".center(80, "*")))
-                print(("\r".join(fa.context)))
-                print(("".center(80, "*")))
-                print(("context B".center(80, "*")))
-                print(("\r".join(fb.context)))
-                print(("".center(80, "*")))
+                pass
+                # print(("context A".center(80, "*")))
+                # print(("\r".join(fa.context)))
+                # print(("".center(80, "*")))
+                # print(("context B".center(80, "*")))
+                # print(("\r".join(fb.context)))
+                # print(("".center(80, "*")))
