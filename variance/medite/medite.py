@@ -39,9 +39,8 @@ DEFAULT_PARAMETERS = Parameters(
     # Apostrophe typographique (guillemet simple fermant) : ’
     # Parenthèse ouvrante : (
     # Parenthèse fermante : )
-    #sep=""" !\r,\n:\t;-?"'`()""",
+    # sep=""" !\r,\n:\t;-?"'`()""",
     sep=""" !\r,\n:\t;-?"\'`()….»«""",
-
 )
 
 
@@ -193,7 +192,6 @@ class DiffTexts(object):
 
         logging.log(5, "Debut de l'alignement")
         deb_al = time.perf_counter()
-        
 
         aligneur = alignement.AlignAstarRecur(
             l_texte1=self.lg_texte1,

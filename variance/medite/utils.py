@@ -508,7 +508,7 @@ def pretty_print(appli):
             "__W__", str(W)
         )
     )
-    print('\n\n')
+    print("\n\n")
     for a, b in appli.bbl.liste:
         fa = f(a)
         fb = f(b)

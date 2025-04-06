@@ -318,7 +318,9 @@ class GeneralisedSuffixTree(object):
         return seq_repeat
 
     # mode mot ou char
-    def get_MEM_index_chaine3(self, carOuMot, separators, min_size=1, eliminRecouv=True):
+    def get_MEM_index_chaine3(
+        self, carOuMot, separators, min_size=1, eliminRecouv=True
+    ):
         just_keep_words = carOuMot
         """ just_keep_words: si Vrai, on rogne les homologies de fa�on � n'avoir que des mots 
         (ou suites de mots) entiers 

@@ -37,7 +37,8 @@ class BiBlocList(object):
     debut et fin sont les limites du bloc dans la chaine de texte.
     listeDep est une liste �ventuellement vide listant tous les intervalles de d�placement compris dans le bloc.
     Les blocs I et S sont align�s forc�ment avec des blocs None.
-    Les blocs R et BC sont align�s forc�ment avec des blocs respectivement R et BC."""
+    Les blocs R et BC sont align�s forc�ment avec des blocs respectivement R et BC.
+    """
 
     def __init__(self, resultat, parameters, depOrdonnes=True):
         """Constructeur
@@ -335,8 +336,8 @@ class BiBlocList(object):
         """Evalue l'alignement"""
         assert c1 + c2 + c3 == 1
         # sep = """ !\r,\n:\t;-?"'`�()"""
-        #sep_ = """ !\r,\n:\t;-?"'`\\u2019()"""
-        #breakpoint()
+        # sep_ = """ !\r,\n:\t;-?"'`\\u2019()"""
+        # breakpoint()
         sep = self.parameters.sep
         seq1 = self.lgSource
         seq2 = len(self.texte) - seq1
@@ -579,7 +580,8 @@ class BiBlocList(object):
 
         Chaque Bibloc est convertit en une ligne <tr></tr> d'une table html
         Si stream, on ecrit r�guli�rement dans fileBuffer la table courante et
-        on la r�initialise ensuite sinon on cr�e une grosse chaine que l'on renvoie"""
+        on la r�initialise ensuite sinon on cr�e une grosse chaine que l'on renvoie
+        """
         res = []
         i = 0
         for B1, B2 in self.liste:

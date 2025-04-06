@@ -86,7 +86,15 @@ class Align(object):
 
 
 class AlignAstarRecur(Align):
-    def __init__(self, l_texte1, carOuMot, separators:str, long_min_pivots=1, algoAlign="", sep=True):
+    def __init__(
+        self,
+        l_texte1,
+        carOuMot,
+        separators: str,
+        long_min_pivots=1,
+        algoAlign="",
+        sep=True,
+    ):
         """Constructeur
 
         #pre: isinstance(l_texte1, int) and isinstance(long_min_pivots, int)
@@ -411,7 +419,10 @@ class AlignAstarRecur(Align):
         if self.algoAligneur.lower() == "HISCont".lower():
             eliminationRecouv = False
         blocs_texte = st.get_MEM_index_chaine3(
-            self.carOuMot, min_size=self.long_min_pivots, eliminRecouv=eliminationRecouv, separators=self.separators,
+            self.carOuMot,
+            min_size=self.long_min_pivots,
+            eliminRecouv=eliminationRecouv,
+            separators=self.separators,
         )
         # if t1 == u': Enfin pourtant la Reyne':
         #    import ipdb;ipdb.set_trace()

@@ -43,7 +43,7 @@ Insertion = namedtuple("Insertion", "start text")
 Text = namedtuple("Text", "text replacements insertions")
 
 
-def xml2medite(text:str) -> Text:
+def xml2medite(text: str) -> Text:
     """transform xml text to medite text"""
     text_raw = text
     replacements = ()
@@ -67,8 +67,8 @@ def xml2medite(text:str) -> Text:
             # print(old, start,end, len(text))
             replacement = Replacement(start=start, end=end, old=old, new=new)
             text = text[:start] + new + text[end:]
-            logger.debug(f'[{repr(old):<15}] --> [{repr(new)}]')
-            
+            logger.debug(f"[{repr(old):<15}] --> [{repr(new)}]")
+
             replacements = replacements + (replacement,)
     # there are actually no insertions necessary
     z = Text(text=text, replacements=replacements, insertions=())
@@ -81,20 +81,24 @@ def xml2medite(text:str) -> Text:
     assert z_.text == text_raw
     return z
 
+
 @functools.lru_cache(maxsize=128)
-def reverse_transform(text:Text) -> Text:
+def reverse_transform(text: Text) -> Text:
     """reverse the transformation"""
-    x =text.text
+    x = text.text
     assert not text.insertions
     # if we have no transformations, we can just return the text
     if not text.replacements:
         return text
     replacements = ()
     for r in text.replacements[::-1]:
-        replacement = Replacement(start=r.start, end=r.start + len(r.new), old=r.new, new=r.old)
+        replacement = Replacement(
+            start=r.start, end=r.start + len(r.new), old=r.new, new=r.old
+        )
         replacements = replacements + (replacement,)
         x = x[: r.start] + r.old + x[r.start + len(r.new) :]
     return Text(text=x, replacements=replacements, insertions=())
+
 
 def medite2xml(text: Text) -> str:
     """transform medite text to xml text"""
@@ -111,6 +115,7 @@ def medite2xml(text: Text) -> str:
     N = len(insertion.text)
     # we need to correct the insertions that are after the current insertion
     insertions = [k._replace(start=k.start + N) for k in insertions]
+
     def gen():
         for r in replacements:
             # if the replacement is after the insertion
@@ -125,11 +130,10 @@ def medite2xml(text: Text) -> str:
     return medite2xml(Text(text=x, replacements=replacements, insertions=insertions))
 
 
-
 def extract(text: Text, start: int, end: int) -> str:
     """retrieve what has become of the original between start and end"""
-    start_, end_ = start,end
-    #old_txt = text[start:end]
+    start_, end_ = start, end
+    # old_txt = text[start:end]
     text_ = reverse_transform(text)
     assert not text.insertions
     if start == end:
@@ -150,14 +154,14 @@ def extract(text: Text, start: int, end: int) -> str:
             # nothing to do as the change is after the interval
             pass
         else:
-            #breakpoint()
+            # breakpoint()
             if M.contains_interval(change):
                 end += len(xr.new) - len(xr.old)
             else:
-                raise IndexError(f'Cannot extract replaced portions')
+                raise IndexError(f"Cannot extract replaced portions")
 
-    if start_==0:
+    if start_ == 0:
         start = 0
-    if end_>=len(text_.text):
+    if end_ >= len(text_.text):
         end = len(text.text)
     return text.text[start:end]

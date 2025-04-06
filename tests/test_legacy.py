@@ -34,11 +34,6 @@ def mk_path(xml_filename, filename):
 Result = namedtuple("Result", "ins sup remp bc bd lg")
 
 
-
-
-
-
-
 def gen_separator_cases():
     Case = namedtuple("Case", "parameters txt1 txt2 expected check")
     vanilla_parameters = md.Parameters(
@@ -59,11 +54,11 @@ def gen_separator_cases():
         assert z == {"BC", "I"}
 
     # BC  |La Fondation de l’Hermitage présente une collection réunie à partir des années  |La Fondation de l’Hermitage présente une collection réunie à partir des années  |  BC
-    #     |1950 par Oscar Ghez                                                             |1950 par Oscar Ghez                                                             |    
+    #     |1950 par Oscar Ghez                                                             |1950 par Oscar Ghez                                                             |
     # R   |, un                                                                            |. Un                                                                            |   R
     # BC  | industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du   | industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du   |  BC
-    #     |XIXe siècle et du début du XXe siècle.                                          |XIXe siècle et du début du XXe siècle.                                          |    
-    # S   |                                                                                |                                                                                |    
+    #     |XIXe siècle et du début du XXe siècle.                                          |XIXe siècle et du début du XXe siècle.                                          |
+    # S   |                                                                                |                                                                                |
     #     |                                                                                |                                                                                |   I
     # BC  |Avec son esprit libre et anticonformiste, ce                                    |Avec son esprit libre et anticonformiste, ce                                    |  BC
     #     |                                                                                |                                                                                |   I
@@ -137,7 +132,6 @@ Avec son esprit libre et anticonformiste, ce
         txt2="""Les poules vertes'|\ncouvent le samedi""",
         result=None,
     )
-    
 
 
 @pytest.mark.parametrize("case", gen_separator_cases())
@@ -164,5 +158,3 @@ def test_separator(case):
     #     fb = f(b)
     #     breakpoint()
     # to examine manually
-
-
