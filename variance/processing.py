@@ -180,11 +180,6 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
         yield from [(k.b_start, k.b_end) for k in deltas if isinstance(k, (BC, R))]
 
     txt2 = "".join([z2.txt[k[0] : k[1]] for k in sorted(gen())])
-    # tidbit to facilitate debugging, will flag the first character that has changed
-    # act = txt2
-    # ref = z2.txt
-    # k = next((i for i, z in enumerate(zip(act, ref)) if z[0] != z[1]), None)
-    # assert k is None
 
     assert txt2 == z2.txt
     return Result(appli=appli, deltas=deltas)
@@ -345,14 +340,6 @@ def process(
         enumerate(res.deltas), desc="processing deltas", total=len(res.deltas)
     ):
         # each type of change requires a different handling
-        50253
-        if hasattr(z, "a_start"):
-            start = z.a_start
-        else:
-            start = z.start
-        if start >= 50253:
-            # breakpoint()
-            pass
         if isinstance(z, BC):
             logger.debug("BLOC COMMUN".center(120, "$"))
             id_v1 = f"v1_{z.a_start}_{z.a_end}"
