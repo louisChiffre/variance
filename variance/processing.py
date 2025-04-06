@@ -5,15 +5,16 @@ import re
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 from collections import namedtuple
-from itertools import zip_longest
 from pathlib import Path
 import bs4
-import testfixtures
 from bs4 import BeautifulSoup
-from intervaltree import IntervalTree
 from lxml import etree
 from enum import Enum
 import copy
+import tqdm
+import testfixtures
+
+from variance import operations as op
 
 from variance.medite import medite as md
 from variance.medite.utils import make_html_output, make_javascript_output
@@ -26,22 +27,17 @@ namespaces = {"": "http://www.tei-c.org/ns/1.0"}
 for prefix, uri in namespaces.items():
     ET.register_namespace(prefix, uri)
 
-esc = "'"
 # we keep track of the escape characters
-medite_special_characters = [esc, "|"]
 escape_characters_mapping = {
-    "…": "'…",
-    ".": "'.",
-    "»": "'»",
-    "«": "«'",
+# currently em
 }
 
 escape_characters_regex = re.escape("|".join(escape_characters_mapping.keys()))
-newline = """'|""" + "\n"
+newline = "\n"
 
 REPLACE = namedtuple("REPLACE", "start end old new")
 INSERT = namedtuple("INSERT", "start text")
-TEXT = namedtuple('TEXT', 'content replacements insertions')
+TEXT = namedtuple('TEXT', 'conetnt replacements insertions')
 
 def xml2medite(text)->TEXT:
     """transform xml text to medite text"""
@@ -53,57 +49,7 @@ def xml2medite(text)->TEXT:
     
 
 
-# TODO rename function to remove_medite_annotations
-def remove_medite_annotations_simple(txt: str) -> str:
-    txt = txt.replace(newline, "")
-    # we remove the newline first as they are replace with <p> tags
 
-    # we remove first the escape characters
-    for b, a in escape_characters_mapping.items():
-        txt = txt.replace(a, b)
-
-    # then we have to deal with the specaial characters are cut off by xml tags (angchor and metamark)
-    for i in [1, 2]:
-        x = re.escape(newline[:i])
-        y = re.escape(newline[i:])
-        pattern = rf"{x}(<[^{x}{y}]+?/>){y}"
-        txt = re.sub(pattern, r"\1", txt)
-
-    # special with the newline separated in three
-    x = re.escape(newline[0])
-    y = re.escape(newline[1])
-    z = re.escape(newline[2])
-    pattern = rf"{x}(<[^{x}{y}{z}]+?/>){y}(<[^{x}{y}{z}]+?/>){z}"
-    txt = re.sub(pattern, r"\1\2", txt)
-
-    # new line in the change list
-    for i in [1, 2]:
-        x = re.escape(newline[:i])
-        pattern = rf"{x}(</[sub|sup|add])"
-        txt = re.sub(pattern, r"\1", txt)
-
-    # # special characters in the change list in the change list
-    # x = re.escape(newline[0:2])
-    # pattern = rf'{x}(</)'
-    # breakpoint()
-    # txt = re.sub(pattern, r'\1', txt)
-
-    for a, b in escape_characters_mapping.items():
-        if b.startswith(esc):
-            # case in the body
-            x = re.escape(b[:1])
-            y = re.escape(b[1:])
-            pattern = rf"{x}(<[^{x}{y}]+?/>)({y})"
-            txt = re.sub(pattern, r"\1\2", txt)
-
-            # case in the change list
-            x = re.escape(b[:1])
-            pattern = rf"{x}(</[sub|sup|add])"
-            txt = re.sub(pattern, r"\1", txt)
-
-        # TODO implement with "«'",
-
-    return txt
 
 
 def read(filepath: pathlib.Path):
@@ -137,121 +83,12 @@ def remove_medite_annotations(txt: str) -> str:
 
     return txt
 
-    # remove escape characters
-    txt = txt.replace(newline, "")
 
-    for a in medite_special_characters:
-        txt = txt.replace(a, "")
-
-    return txt
+Output = namedtuple("Output", "id txt soup path changes rchanges pos2annotation")
 
 
-Output = namedtuple("Output", "id txt soup path changes pos2annotation")
 
 
-def to_txt(filepath: pathlib.Path):
-    """transform tei xml in list of lines. This is used for internal consistency checks"""
-    soup = read(filepath=filepath)
-
-    def gen():
-        for div in soup.find("body").find_all("div"):
-            p_elements = div.find_all("p")
-            for p in p_elements:
-
-                def gen_p():
-                    for content in p.contents:
-                        if content.name == "emph":
-                            yield content.get_text()
-                        elif isinstance(content, str):
-                            yield content
-                        elif content.name is None and content.string:
-                            yield content.string
-                        else:
-                            pass
-                            # raise Exception('Unknown type of content')
-                    yield "\n"
-
-                txt = "".join(gen_p())
-                yield txt
-
-    return "".join(gen()).split("\n")
-
-
-def find_next_string_element(z: bs4.element.Tag):
-    zz = z.next_sibling
-    if zz is None:
-        return None
-
-    if isinstance(zz, bs4.element.NavigableString):
-        return zz
-    return find_next_string_element(zz)
-
-
-def remove_newline_annotation(body):
-    for div in body.find_all("div"):
-        paragraphs = div.find_all("p")
-        for paragraph in paragraphs:
-            z = list(paragraph.strings)
-            for x in paragraph.contents:
-                # if we have a string
-                if isinstance(x, bs4.element.NavigableString):
-                    # first we replace the medite annotation
-                    # then we check if an escape character was not cut off
-                    if len(x) > 0 and x.string[-1] == esc:
-                        nx = find_next_string_element(x)
-                        # if we have a next string
-                        assert nx is not None
-                        # if the last character and the starts of the next text forms a newline
-                        if (x.string[-1] + nx.string).startswith(newline):
-                            x.replace_with(str(x)[:-1])
-                            assert nx.string == newline[1:]
-                            # we replace it with empty
-                            nx.replace_with("")
-
-
-class Tag(Enum):
-    START = "START"
-    END = "END"
-
-
-def to_xml_flat(filepath: pathlib.Path):
-    """remove non original tags in tei xml so it can be compared post/pre processing"""
-    soup = read(filepath=filepath)
-    soup = copy.deepcopy(soup)
-    for tag_name in ["metamark", "anchor"]:
-        for tag in soup.find_all(tag_name):
-            tag.decompose()
-
-    # yield all the xml tags, i.e when an element is open, when it is closed
-    def gen():
-        # we go through the divs
-        for div in soup.find("body").find_all("div"):
-            # we go through the paragraphs
-            p_elements = div.find_all("p")
-            for p in p_elements:
-                yield Tag.START
-                for x in p.contents:
-                    yield x
-                yield Tag.END
-
-    # z = list(itertools.chain(*gen()))
-    xx = list(gen())
-
-    # we then need to merge the string that were separated by metamarks and anchors
-    def gen():
-        for t, x_iter in itertools.groupby(xx, type):
-            if t == bs4.element.NavigableString:
-                k = "".join(x_iter)
-                # we remove the new line
-                if k.strip():
-                    yield k
-            else:
-                x = list(x_iter)
-                # if len(x)>1:
-                #     breakpoint()
-                yield from x
-
-    return list(gen())
 
 
 # TODO rename to preprocess_xml or tei2txt
@@ -272,7 +109,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
     )
     txt_filepath.write_text(txt, encoding="utf-8")
 
-    # the output of the function contains the txt, but also the original xml document and the character to paragraph mapping
+    # the output fo the function contains the txt, but also the original xml document and the character to paragraph mapping
     return Output(
         id=soup.find("TEI")["xml:id"],
         txt=txt,
@@ -280,6 +117,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
         changes=x,
         path=filepath,
         pos2annotation=None,
+        rchanges=op.reverse_transform(x)
     )
 
 
@@ -361,7 +199,14 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
 class IdenticalFilesException(Exception):
     pass
 
-from variance import operations as op
+def concat_overlap(a: str, b: str) -> str:
+    max_overlap = min(len(a), len(b))
+    for i in range(max_overlap, 0, -1):
+        if a.endswith(b[:i]):
+            return a + b[i:]
+    return a + b
+
+
 def process(
     source_filepath: pathlib.Path,
     target_filepath: pathlib.Path,
@@ -437,74 +282,27 @@ def process(
     html_output_filename = output_filepath.with_suffix(".html")
     logger.info(f"generating classic html output {html_output_filename}")
     make_html_output(appli=res.appli, html_filename=html_output_filename)
-    logger.info('process completed')
-    return
+    logger.info('html creation completed')
 
-    # we don't want the script to stop if there is an ntld data issue
-    try:
-        make_javascript_output(appli=res.appli, base_dir=source_filepath.parent)
-    except Exception as e:
-        print(f"Could not generate javascript output {e}")
+
+    zbody = ''
 
     # populate the xml
     updated = set()
 
-    def get_xml_text_from_range(z: Output, start, end):
-        def gen():
-            for k in range(start, end):
-                if k in z.pos2annotation:
-                    yield z.pos2annotation[k]
-                else:
-                    yield z.txt[k]
 
-        def gen2():
-            for group, k_iter in itertools.groupby(gen(), type):
-                if group == bs4.element.Tag:
-                    yield from k_iter
-                else:
-                    yield "".join(k_iter)
-
-        return list(gen2())
-
-    # there is a series of utility functions
-    # add to the list of changes
-    def add_list_(txt, attributes, name):
-        """add change to list of change for the list tags of mediteData"""
-
-        list_elem = lists[name]
-        elem = ET.SubElement(lists[name], name, attributes)
-        if txt:
-            elem.text = remove_medite_annotations(txt)
 
     def add_list(z: Output, start, end, attributes, name):
-        """add change to list of change for the list tags of mediteData"""
-        breakpoint()
-        txts = get_xml_text_from_range(z=z, start=start, end=end)
-
-        list_elem = lists[name]
-        # we create a new element with the correct tag and attributes
+        """add change to list of change for the list tags of mediteData"""        
+        txt = op.extract(z.rchanges, start, end)
         elem = ET.SubElement(lists[name], name, attributes)
-        elem.text = ""
-        for txt in txts:
-            if isinstance(txt, bs4.element.Tag):
-                elem.append(ET.fromstring(str(txt)))
-            else:
-                elem.text += remove_medite_annotations(txt)
+        elem.text = txt
+
 
     def metamark(function: str, target: str):
         """creates a metamark"""
         return z1.soup.new_tag("metamark", function=function, target=target)
 
-
-
-
-
-
-
-
-    def append_tag(tag, zp):
-        logger.debug(f"appending {tag=} on {zp}")
-        zp.append(tag)
 
     # we need to keep track of moved blocks
     z2_moved_blocks = {}
@@ -517,48 +315,48 @@ def process(
             key = z2.txt[z.start : z.end]
             z2_moved_blocks[key] = z
 
-    for key in set(z1_moved_blocks).difference(z2_moved_blocks):
-        # r_block = next((k for k in res.deltas if isinstance(k,R) if z2.txt[k.b_start:k.b_end]==key))
-        # z2_moved_block[key] =
-        # breakpoint()
-        pass
-    for key in set(z2_moved_blocks).difference(z1_moved_blocks):
-        pass
-
-        # breakpoint()
-    # we verify that for every moved block in z1 there is a coresponding block in z2
-    # currently not active as the TODO above is not implemented
-    # assert set(z1_moved_blocks) == set(z2_moved_blocks)
-    # TODO rename to original_text_append
-    def append_text(tag, start: int, end: int):
-        """add text to new xml body, add paragraph and pb tags if necessary"""
-        # character range can cross several paragraphs
-        for i, P in enumerate(zip_paragraphs(start=start, end=end)):
-            id, paragraph, txt = P
-            # we retrieve the paragraph from the interval using data
-            zp = paragraph.data
-            # we remove the existing in the paragraph if it has not been done alreadyy so we can reconstruct it
-            reset_paragraph(id=id, zp=zp)
-            # we add the tag if it's the first paragraph from the range
-            if i == 0:
-                append_tag(tag=tag, zp=zp)
-            logger.debug(f"appending {txt=} on {zp}")
-            # we add the paragraph to the xml
-            paragraph_stack.append(zp)
-            # breakpoint()
-            # and add the text to the paragraph
-            assert isinstance(txt, list)
-            for k in txt:
-
-                zp.append(k)
 
     # we need to keep track of the moves
-
     txt2delta = {z1.txt[k.start : k.end]: k for k in res.deltas if isinstance(k, DA)}
 
+    RESULT = []
+    BLOCKS = []
+    def get_block(start, end):
+        '''retrieve the original xml text'''
+        txt = op.extract(z1.rchanges, start, end)
+        if BLOCKS:
+            # We verify that the blocks are contiguous to guarantee the text is invariant
+            expected_start = BLOCKS[-1][-1]
+            if expected_start != start:
+                missing_txt = op.extract(z1.rchanges, expected_start,start)
+                raise ValueError(f"Text [{missing_txt}] is missing. Expected block to start at {expected_start}, but found {start}. Blocks are not contiguous.")
+        
+        BLOCKS.append([start,end])
+        RESULT.append(txt)
+        actual = ''.join(RESULT)
+        # We verify that we are re-constructing the original text
+        if not z1.rchanges.text.startswith(actual):
+            # Special case when there was the deletion of section at the beginning of the block
+            x=op.extract(z1.rchanges, start-1, end)
+            xx=RESULT[-2]
+            txt = concat_overlap(xx, x)[len(xx):]
+            RESULT[-1] = txt
+            actual = ''.join(RESULT)
+            assert z1.rchanges.text.startswith(actual)
+
+        return txt
+
     # let's go through the deltas
-    for i, z in enumerate(res.deltas):
+    for i, z in tqdm.tqdm(enumerate(res.deltas), desc="processing deltas", total=len(res.deltas)):
         # each type of change requires a different handling
+        50253
+        if hasattr(z, "a_start"):
+            start = z.a_start
+        else:
+            start = z.start
+        if start >=50253:
+            #breakpoint()
+            pass
         if isinstance(z, BC):
             logger.debug("BLOC COMMUN".center(120, "$"))
             id_v1 = f"v1_{z.a_start}_{z.a_end}"
@@ -567,43 +365,34 @@ def process(
             tag = z1.soup.new_tag(
                 "anchor", **{"xml:id": id_v1, "corresp": id_v2, "function": "bc"}
             )
-            z1.changes.insertions.append(op.Insertion(start=z.a_start, text=str(tag)))
-            #append_text(tag=tag, start=z.a_start, end=z.a_end)
+            #zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
+            zbody+=str(tag)+get_block( z.a_start, z.a_end)
+            
         elif isinstance(z, S):
             logger.debug("SUPPRESION".center(120, "$"))
             target_id = f"v1_{z.start}_{z.end}"
             tag = metamark(function="del", target=target_id)
-            breakpoint()
-            z1.changes.insertions.append(op.Insertion(start=z.start, text=str(tag)))
-            txt = z1.txt[z.start : z.end]
-            breakpoint()
-            if txt.strip() == "":
-                add_list(
-                    z=z1,
-                    start=z.start,
-                    end=z.end,
-                    attributes={"type": "paragraphe", "corresp": target_id},
-                    name="deletion",
-                )
+            
+            if op.extract(z1.rchanges, z.start, z.end) == "</p><p>":
+                attributes={"type": "paragraph", "corresp": target_id}
             else:
-                add_list(
-                    z=z1,
-                    start=z.start,
-                    end=z.end,
-                    attributes={"corresp": target_id},
-                    name="deletion",
-                )
-
+                attributes={"corresp": target_id}
+            #zbody+=str(tag)+op.extract(z1.rchanges, z.start, z.end)
+            zbody+=str(tag)+get_block( z.start, z.end)
+            add_list(
+                z=z1,
+                start=z.start,
+                end=z.end,
+                attributes=attributes,
+                name="deletion",
+            )
         elif isinstance(z, I):
             logger.debug("INSERTION".center(120, "$"))
             target_id = f"v2_{z.start}_{z.end}"
             tag = metamark(function="add", target=target_id)
-            z1.changes.insertions.append(op.Insertion(start=z.start, text=str(tag)))
-            # breakpoint()
-            # current_paragraph = paragraph_stack[-1]
-            # reset_paragraph(id=current_paragraph["id"], zp=current_paragraph)
-            # append_tag(tag=tag, zp=current_paragraph)
-            # breakpoint()
+
+            zbody+=str(tag)
+
             add_list(
                 z=z2,
                 start=z.start,
@@ -614,23 +403,22 @@ def process(
 
         elif isinstance(z, DA):
             logger.debug("MOVE A".center(120, "$"))
-            breakpoint()
             key = z1.txt[z.start : z.end]
             # we retrieve the corresponding block in the second text
             # special case when a moved block is part of a replacement
             # TODO hanlde case propery
-            if key not in z2_moved_blocks:
-                continue
-            z_ = z2_moved_blocks[key]
-            id_v1 = f"v1_{z.start}_{z.end}"
-            id_v2 = f"v2_{z_.start}_{z_.end}"
-            tag = z1.soup.new_tag(
-                "metamark", function="trans", target=id_v1, corresp=id_v2
-            )
-            append_text(tag=tag, start=z.start, end=z.end)
-            # add_list(
-            #     txt=key, attributes=dict(target=id_v1, corresp=id_v2), name="transpose"
-            # )
+            #zbody+=get_block( z.start, z.end)
+            if key in z2_moved_blocks:
+                z_ = z2_moved_blocks[key]
+                id_v1 = f"v1_{z.start}_{z.end}"
+                id_v2 = f"v2_{z_.start}_{z_.end}"
+                tag = z1.soup.new_tag(
+                    "metamark", function="trans", target=id_v1, corresp=id_v2
+                )
+            else:
+                tag =''
+            #zbody+=str(tag)+op.extract(z1.rchanges, z.start, z.end)
+            zbody+=str(tag)+get_block( z.start, z.end)
             add_list(
                 z=z1,
                 start=z.start,
@@ -640,25 +428,22 @@ def process(
             )
         elif isinstance(z, DB):
             logger.debug("MOVE B".center(120, "$"))
-            breakpoint()
-            # we retrieve the reference to the moved fragment
+
             txt = z2.txt[z.start : z.end]
             assert txt in txt2delta, f"Cannot find a delta matching with {txt=}"
             z_ = txt2delta[txt]
             id_v1 = f"v1_{z_.start}_{z_.end}"
-            current_paragraph = paragraph_stack[-1]
             tag = metamark(function="trans", target=id_v1)
-            # not sure we have to do it
-            # reset_paragraph(id=current_paragraph["id"], zp=current_paragraph)
-            append_tag(tag=tag, zp=current_paragraph)
+            zbody+=str(tag)
+
         elif isinstance(z, R):
             id_v1 = f"v1_{z.a_start}_{z.a_end}"
             id_v2 = f"v2_{z.b_start}_{z.b_end}"
             tag = z1.soup.new_tag(
                 "metamark", function="subst", target=id_v1, corresp=id_v2
             )
-            breakpoint()
-            append_text(tag=tag, start=z.a_start, end=z.a_end)
+            #zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
+            zbody+=str(tag)+get_block( z.a_start, z.a_end)
             add_list(
                 z=z2,
                 start=z.b_start,
@@ -668,24 +453,23 @@ def process(
             )
         else:
             raise NotImplementedError(f"Element of type {z} is not supported")
-    #breakpoint()
-    # let's do some cleanups
-    # for element in z1.soup.find_all():
-    #     if "id" in element.attrs and element["id"].startswith("#"):
-    #         del element["id"]
-    # # post processing
-    # remove newline
-    # remove_newline_annotation(z1.soup.find("body"))
 
-    txt_raw = op.medite2xml(z1.changes)
-    root.append(ET.fromstring(txt_raw))
+    # We verify we have reconstructed the original text
+    actual =''.join(RESULT)
+    expected = z1.rchanges.text
+    testfixtures.compare( actual,expected, x_label="reconstructed text", y_label="original text", raises=True )
+    #pathlib.Path("text.xml").write_text(zbody, encoding="utf-8")
+    root.append(ET.fromstring('<body>'+zbody+'</body>'))
     tree = ET.ElementTree(root)
+    logger.info(f"Write output to {str(output_filepath)}")
     tree.write(output_filepath, encoding="utf-8", xml_declaration=True, method="xml")
 
+    logger.info(f"Creating temporary xml string")
     xml_str = ET.tostring(root, encoding="unicode")
 
     # Pretty print using lxml
     parser = etree.XMLParser(remove_blank_text=True)
+    logger.info("Creating temporary xml string")
     xml_tree = etree.fromstring(xml_str, parser)
     pretty_xml_str = etree.tostring(xml_tree, pretty_print=True, encoding="unicode")
 
@@ -697,31 +481,7 @@ def process(
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
     return
-    breakpoint()
-
-    # we verfiy the old and the new xml gives the same original text
-    x2 = [str(k) for k in to_xml_flat(output_filepath)]
-    x1 = [str(k) for k in to_xml_flat(source_filepath)]
-
-    x12 = [(k, v) for k, v in itertools.zip_longest(x1, x2)]
-    import pandas as pd
-
-    dfx = pd.DataFrame(x12, columns=["x1", "x2"])
-    dfx.to_csv("flat.csv")
-    # we only select the rows where the text is different
-    df = dfx[dfx["x1"] != dfx["x2"]]
-    strict = False
-    for x in df.itertuples():
-        result = testfixtures.compare(
-            x.x1, x.x2, x_label="original text", y_label="processed text", raises=strict
-        )
-        if result:
-            logger.warn("original xml has changed\n{result}\n")
-    # TODO add strict parameters that stops the process if inconssiencies are found
-    testfixtures.compare(
-        x1, x2, x_label="original text", y_label="processed text", raises=strict
-    )
-
+    
 
 def create_tei_xml(
     path: Path, pub_date_str: str, title_str: str, version_nb: int

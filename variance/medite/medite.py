@@ -39,7 +39,8 @@ DEFAULT_PARAMETERS = Parameters(
     # Apostrophe typographique (guillemet simple fermant) : ’
     # Parenthèse ouvrante : (
     # Parenthèse fermante : )
-    sep=""" !\r,\n:\t;-?"'`()""",
+    #sep=""" !\r,\n:\t;-?"'`()""",
+    sep=""" !\r,\n:\t;-?"\'`()….»«""",
 
 )
 
