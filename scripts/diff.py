@@ -8,6 +8,8 @@ import click
 from os.path import dirname, join
 import variance
 from variance.medite import medite as md
+import shutil
+
 
 from variance import processing as p
 import logging
@@ -98,17 +100,31 @@ def run(
             version_nb=2,
         )
 
-    p.process(
+    output_filepath = pathlib.Path(output_xml)
+    raw_output_filepath = output_filepath.with_suffix(".raw.xml")
+    debug_filepaths = p.process(
         source_filepath=source_filepath,
         target_filepath=target_filepath,
         parameters=parameters,
-        output_filepath=pathlib.Path(output_xml),
+        output_filepath=raw_output_filepath,
     )
+    p.apply_post_processing(
+        input_filepath=raw_output_filepath, output_filepath=output_filepath
+    )
+    debug_filepaths.append(output_filepath)
     if xhtml_output_dir:
         p.create_xhtml(
-            source_filepath=pathlib.Path(output_xml),
+            source_filepath=output_filepath,
             output_dir=pathlib.Path(xhtml_output_dir),
         )
+        for path in debug_filepaths:
+            dest = pathlib.Path(xhtml_output_dir) / path.name
+            logger.info(f"copying {path} to {dest}")
+            # copy file to xhtml_output_dir
+            shutil.copy(
+                path,
+                dest,
+            )
 
 
 if __name__ == "__main__":

@@ -83,7 +83,9 @@ def remove_medite_annotations(txt: str) -> str:
     return txt
 
 
-Output = namedtuple("Output", "id txt soup path changes rchanges pos2annotation")
+Output = namedtuple(
+    "Output", "id txt soup path path_txt changes rchanges pos2annotation"
+)
 
 
 # TODO rename to preprocess_xml or tei2txt
@@ -110,6 +112,7 @@ def xml2txt(filepath: pathlib.Path) -> Output:
         soup=soup,
         changes=x,
         path=filepath,
+        path_txt=txt_filepath,
         pos2annotation=None,
         rchanges=op.reverse_transform(x),
     )
@@ -203,7 +206,7 @@ def process(
     target_filepath: pathlib.Path,
     parameters: md.Parameters,
     output_filepath: pathlib.Path,
-):
+) -> list[pathlib.Path]:
     """Compare two TEI XML files and generate a new TEI XML file describing the changes between the two versions.
 
     Args:
@@ -215,13 +218,21 @@ def process(
     Returns:
         None
     """
-    """the main function"""
     # we transform the xml in text with medite annotations
     logger.info(f"using [{repr(parameters.sep)}]")
     logger.info(f"process {str(source_filepath)=} {str(target_filepath)=}")
 
+    # we keep track of all
+    debug_filepaths = []
+
     z1 = xml2txt(source_filepath)
     z2 = xml2txt(target_filepath)
+
+    debug_filepaths.append(z1.path_txt)
+    debug_filepaths.append(z2.path_txt)
+    debug_filepaths.append(source_filepath)
+    debug_filepaths.append(target_filepath)
+
     if z1.txt == z2.txt:
         raise IdenticalFilesException(
             f"{source_filepath} and {target_filepath} are identical"
@@ -276,15 +287,17 @@ def process(
     logger.info(f"generating classic html output {html_output_filename}")
     make_html_output(appli=res.appli, html_filename=html_output_filename)
     logger.info("html creation completed")
+    debug_filepaths.append(html_output_filename)
 
     zbody = ""
 
-    # populate the xml
+    # populate the xlm
     updated = set()
 
     def add_list(z: Output, start, end, attributes, name):
         """add change to list of change for the list tags of mediteData"""
         txt = op.extract(z.rchanges, start, end)
+
         elem = ET.SubElement(lists[name], name, attributes)
         elem.text = txt
 
@@ -454,7 +467,7 @@ def process(
     logger.info(f"Write output to {str(output_filepath)}")
     tree.write(output_filepath, encoding="utf-8", xml_declaration=True, method="xml")
 
-    logger.info(f"Creating temporary xml string")
+    logger.info("Creating temporary xml string")
     xml_str = ET.tostring(root, encoding="unicode")
 
     # Pretty print using lxml
@@ -470,7 +483,25 @@ def process(
     logger.info(f"Write output to {str(output_filepath)}")
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
-    return
+    debug_filepaths.append(output_filepath)
+
+    return debug_filepaths
+
+
+def apply_post_processing(input_filepath: pathlib.Path, output_filepath: pathlib.Path):
+    logger.info(f"Applying post-processing to {input_filepath}")
+    txt = input_filepath.read_text(encoding="utf-8")
+    txt2rep = (
+        ("&lt;p/&gt;", "<br></br>"),
+        ("&lt;p&gt;", ""),
+        ("&lt;/p&gt;", "<br></br>"),
+    )
+    for a, b in txt2rep:
+        logger.info(f"replacing {a=} with {b}")
+        txt = txt.replace(a, b)
+
+    logger.info(f"Writing post-processed text to {output_filepath}")
+    output_filepath.write_text(txt, encoding="utf-8")
 
 
 def create_tei_xml(
