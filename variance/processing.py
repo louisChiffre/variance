@@ -491,10 +491,37 @@ def process(
 def apply_post_processing(input_filepath: pathlib.Path, output_filepath: pathlib.Path):
     logger.info(f"Applying post-processing to {input_filepath}")
     txt = input_filepath.read_text(encoding="utf-8")
+
+    # we replace all the emph tags that are inside the text and replace them with the none-escaped version
+    sa = "&lt;emph&gt;"
+    sa_ = "<emph      >"
+    sb = "&lt;/emph&gt;"
+    sb_ = "</emph      >"
+    assert len(sa) == len(sa_)
+    assert len(sb) == len(sb_)
+    NN = len(txt)
+    starts = [m.start() for m in re.finditer(sa, txt)]
+    for start in starts:
+        N = start + len(sa)
+        k = txt[N:].find(sb)
+        if k == -1:
+            continue
+        end = N + k
+        x = txt[N:end]
+        # if the text contains < or >, we skip it
+        if "<" in x or ">" in x:
+            continue
+        txt = txt[:start] + sa_ + x + sb_ + txt[end + len(sb) :]
+        assert len(txt) == NN
+        end += N + len(sb)
+
     txt2rep = (
         ("&lt;p/&gt;", "<br></br>"),
         ("&lt;p&gt;", ""),
         ("&lt;/p&gt;", "<br></br>"),
+        ("&lt;/div&gt;", ""),
+        (sa_, "<emph>"),
+        (sb_, "</emph>"),
     )
     for a, b in txt2rep:
         logger.info(f"replacing {a=} with {b}")
