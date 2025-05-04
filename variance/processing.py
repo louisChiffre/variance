@@ -2,6 +2,7 @@ import itertools
 import logging
 import pathlib
 import re
+import subprocess
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
 from collections import namedtuple
@@ -543,3 +544,48 @@ def create_tei_xml(
     with open(output_path, "w", encoding="utf-8") as f:
         f.write(pretty_xml)
     return output_path
+
+
+def create_xhtml(source_filepath, output_dir):
+    """
+    Create XHTML visualization files for source and target comparison.
+
+    Args:
+        source_filepath (Path): Path to the TEI XML file
+        output_dir (Path): Directory to save the XHTML output
+
+    Returns:
+        Path: Path to the generated XHTML file
+    """
+    logger = logging.getLogger(__name__)
+    logger.info(f"Creating XHTML visualization in {output_dir}")
+
+    # Ensure output directory exists
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Paths for Saxon and XSL
+    saxon_jar = Path("tei2xhtml/lib/SaxonHE12-5J/saxon-he-12.5.jar")
+    xsl_file = Path("tei2xhtml/tei2xhtml.xsl")
+
+    # Run Saxon transformation
+    logger.info(f"Transforming {source_filepath} to {output_dir}")
+
+    cmd = [
+        "java",
+        "-jar",
+        str(saxon_jar),
+        "-s:" + str(source_filepath),
+        "-xsl:" + str(xsl_file),
+        "-o:" + str(output_dir / ".xml"),
+    ]
+    logger.info(f"Running command: {' '.join(cmd)}")
+    try:
+
+        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+
+        logger.info("XSLT transformation completed successfully")
+    except subprocess.CalledProcessError as e:
+        logger.error(f"XSLT transformation failed: {e}")
+        logger.error(f"STDOUT: {e.stdout}")
+        logger.error(f"STDERR: {e.stderr}")
+        raise

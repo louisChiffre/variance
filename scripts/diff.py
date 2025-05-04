@@ -29,10 +29,12 @@ default = md.DEFAULT_PARAMETERS
 @click.option(
     "--diacri-sensitive/--no-diacri-sensitive", default=default.diacri_sensitive
 )
-@click.option(
-    "--sep", default=default.sep
-)
 @click.option("--output-xml", type=click.Path(exists=False), default="informations.xml")
+@click.option(
+    "--xhtml-output-dir",
+    type=click.Path(file_okay=False, dir_okay=True),
+    help="Directory to generate XHTML output files",
+)
 def run(
     source_filename,
     target_filename,
@@ -43,9 +45,10 @@ def run(
     case_sensitive,
     diacri_sensitive,
     output_xml,
+    xhtml_output_dir,
 ):
     for c in sep:
-        logger.info(f'using sep={repr(c)}')
+        logger.info(f"using sep={repr(c)}")
     algo = default.algo
     sep_sensitive = default.sep_sensitive
     car_mot = default.car_mot
@@ -101,6 +104,11 @@ def run(
         parameters=parameters,
         output_filepath=pathlib.Path(output_xml),
     )
+    if xhtml_output_dir:
+        p.create_xhtml(
+            source_filepath=pathlib.Path(output_xml),
+            output_dir=pathlib.Path(xhtml_output_dir),
+        )
 
 
 if __name__ == "__main__":
