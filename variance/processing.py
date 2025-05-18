@@ -5,7 +5,7 @@ import re
 import subprocess
 import xml.dom.minidom as minidom
 import xml.etree.ElementTree as ET
-from collections import namedtuple
+from collections import defaultdict, namedtuple
 from pathlib import Path
 import bs4
 from bs4 import BeautifulSoup
@@ -206,6 +206,7 @@ def process(
     target_filepath: pathlib.Path,
     parameters: md.Parameters,
     output_filepath: pathlib.Path,
+    xhtml_output_dir: pathlib.Path,
 ) -> list[pathlib.Path]:
     """Compare two TEI XML files and generate a new TEI XML file describing the changes between the two versions.
 
@@ -270,11 +271,18 @@ def process(
         },
     )
 
-    lists = {
+    ops2xml = {
         "deletion": ET.SubElement(medite_data, "listDeletion"),
         "addition": ET.SubElement(medite_data, "listAddition"),
         "transpose": ET.SubElement(medite_data, "listTranspose"),
         "substitution": ET.SubElement(medite_data, "listSubstitution"),
+    }
+    # TODO simplify further as href/id/file sharet the same prefix
+    ops2xhtml = {
+        "deletion": dict(href="#as", id="lbs", file="s"),
+        "addition": dict(href="#bi", id="lai", file="i"),
+        "transpose": dict(href="#ad", id="lbd",file="d"),
+        "substitution": dict(href="#ar", id="lbr", file="r"),
     }
 
     # execute medite
@@ -294,12 +302,41 @@ def process(
     # populate the xlm
     updated = set()
 
-    def add_list(z: Output, start, end, attributes, name):
+    xhtml_lists = defaultdict(list)
+    xhtml_counter = defaultdict(int)
+
+    def add_list_xml(z: Output, start, end, attributes, name):
         """add change to list of change for the list tags of mediteData"""
         txt = op.extract(z.rchanges, start, end)
 
-        elem = ET.SubElement(lists[name], name, attributes)
+        elem = ET.SubElement(ops2xml[name], name, attributes)
         elem.text = txt
+
+    def add_list_xhtml(z: Output, start, end, attributes, name):
+        ops = ops2xhtml[name]
+        txt = op.extract(z.rchanges, start, end)
+        txt_ = txt
+        # we rem
+        txt2rep = (
+            ("\n", ""),
+            ("<p/>", "\n"),
+            ("<p>", ""),
+            ("</p>", "\n"),
+            ("</div>", ""),
+        )
+        for a, b in txt2rep:
+            #logger.info(f"replacing {a=} with {b}")
+            txt = txt.replace(a, b)
+        xhtml_counter[name] += 1
+        id_suffix = f"_{xhtml_counter[name]:05d}"
+        href_id = f"{ops['href']}{id_suffix}"
+        li_id = f"{ops['id']}{id_suffix}"
+        li_element = f'<li><a class="sync" data-tags="" href="{href_id}" id="{li_id}">{txt}</a></li>'
+        xhtml_lists[name].append(li_element)
+
+    def add_list(z: Output, start, end, attributes, name):
+        add_list_xml(z=z,start=start, end=end, attributes=attributes, name=name)
+        add_list_xhtml(z=z, start=start, end=end, attributes=attributes, name=name)
 
     def metamark(function: str, target: str):
         """creates a metamark"""
@@ -363,7 +400,11 @@ def process(
                 "anchor", **{"xml:id": id_v1, "corresp": id_v2, "function": "bc"}
             )
             # zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
-            zbody += str(tag) + get_block(z.a_start, z.a_end)
+            block_a = get_block(z.a_start, z.a_end)
+            txt_a = op.extract(z1.rchanges, z.b_start, z.b_end)
+            txt_b = op.extract(z2.rchanges, z.a_start, z.a_end)
+            breakpoint()
+            zbody += str(tag) + block_a
 
         elif isinstance(z, S):
             logger.debug("SUPPRESION".center(120, "$"))
@@ -484,6 +525,14 @@ def process(
     with open(output_filepath, "w", encoding="utf-8") as f:
         f.write(pretty_xml_str)
     debug_filepaths.append(output_filepath)
+
+    if xhtml_output_dir:
+        for name, xhtml_list in xhtml_lists.items():
+            output_filepath = pathlib.Path(xhtml_output_dir) /  f"{ops2xhtml[name]['file']}_py.xhtml"
+            output_filepath.write_text('\n'.join(xhtml_list), encoding="utf-8")
+            logger.info(f"Write {name} list to {str(output_filepath)}")
+
+
 
     return debug_filepaths
 
