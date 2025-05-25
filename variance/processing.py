@@ -283,6 +283,7 @@ def process(
         "addition": dict(href="#bi", id="lai", file="i"),
         "transpose": dict(href="#ad", id="lbd",file="d"),
         "substitution": dict(href="#ar", id="lbr", file="r"),
+        "bc": dict(href="#bc", id="ac", file="bc"),
     }
 
     # execute medite
@@ -304,6 +305,7 @@ def process(
 
     xhtml_lists = defaultdict(list)
     xhtml_counter = defaultdict(int)
+    xhtml_mains = defaultdict(list)
 
     def add_list_xml(z: Output, start, end, attributes, name):
         """add change to list of change for the list tags of mediteData"""
@@ -312,7 +314,42 @@ def process(
         elem = ET.SubElement(ops2xml[name], name, attributes)
         elem.text = txt
 
-    def add_list_xhtml(z: Output, start, end, attributes, name):
+    def add_main_xhtml(txt, name, main_name, id_suffix):
+        ops = ops2xhtml[name]
+        name2class_name = {
+            'bc': "span_c sync sync-single",
+            'deletion': "span_s",
+            'substitution': "sync sync-single span_r",
+            'transpose': "sync sync-single span_d",
+        }
+        name2element_name = {
+            "bc": "a",
+            "substitution": "a",
+            "deletion": "span",
+            "transpose": "a",
+        }
+        txt_ = txt
+        # we rem
+        txt2rep = (
+             ("\n", ""),
+            # ("<p/>", "\n"),
+            # ("<p>", ""),
+            ("<p/>", "<br></br>"),
+            ("<p>", ""),
+            ("</p>", "<br></br>"),
+            ("</div>", ""),            
+            ("<div>", ""),
+        )
+        for a, b in txt2rep:
+            txt = txt.replace(a, b)
+
+        class_name = name2class_name[name]
+        element_name = name2element_name[name]
+        href_id = f"{ops['href']}_{id_suffix}"
+        li_id = f"{ops['id']}_{id_suffix}"
+        xhtml = f'<{element_name} class="{class_name}"  data-tags="" href="{href_id}" id="{li_id}">{txt}</{element_name}>'
+        xhtml_mains[main_name].append(xhtml)
+    def add_list_xhtml(z: Output, start, end, attributes, name, id_suffix):
         ops = ops2xhtml[name]
         txt = op.extract(z.rchanges, start, end)
         txt_ = txt
@@ -327,16 +364,16 @@ def process(
         for a, b in txt2rep:
             #logger.info(f"replacing {a=} with {b}")
             txt = txt.replace(a, b)
-        xhtml_counter[name] += 1
-        id_suffix = f"_{xhtml_counter[name]:05d}"
-        href_id = f"{ops['href']}{id_suffix}"
-        li_id = f"{ops['id']}{id_suffix}"
+        #xhtml_counter[name] += 1
+        #id_suffix = f"_{xhtml_counter[name]:05d}"
+        href_id = f"{ops['href']}_{id_suffix}"
+        li_id = f"{ops['id']}_{id_suffix}"
         li_element = f'<li><a class="sync" data-tags="" href="{href_id}" id="{li_id}">{txt}</a></li>'
         xhtml_lists[name].append(li_element)
 
-    def add_list(z: Output, start, end, attributes, name):
+    def add_list(z: Output, start, end, attributes, name, id_suffix):
         add_list_xml(z=z,start=start, end=end, attributes=attributes, name=name)
-        add_list_xhtml(z=z, start=start, end=end, attributes=attributes, name=name)
+        add_list_xhtml(z=z, start=start, end=end, attributes=attributes, name=name, id_suffix=id_suffix)
 
     def metamark(function: str, target: str):
         """creates a metamark"""
@@ -400,11 +437,11 @@ def process(
                 "anchor", **{"xml:id": id_v1, "corresp": id_v2, "function": "bc"}
             )
             # zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
-            block_a = get_block(z.a_start, z.a_end)
-            txt_a = op.extract(z1.rchanges, z.b_start, z.b_end)
-            txt_b = op.extract(z2.rchanges, z.a_start, z.a_end)
-            breakpoint()
-            zbody += str(tag) + block_a
+            txt = get_block(z.a_start, z.a_end)
+            zbody += str(tag) + txt
+
+            add_main_xhtml(txt=txt,  name="bc", main_name='source', id_suffix=id_v1)
+
 
         elif isinstance(z, S):
             logger.debug("SUPPRESION".center(120, "$"))
@@ -416,14 +453,17 @@ def process(
             else:
                 attributes = {"corresp": target_id}
             # zbody+=str(tag)+op.extract(z1.rchanges, z.start, z.end)
-            zbody += str(tag) + get_block(z.start, z.end)
+            txt = get_block(z.start, z.end)
+            zbody += str(tag) + txt
             add_list(
                 z=z1,
                 start=z.start,
                 end=z.end,
                 attributes=attributes,
                 name="deletion",
+                id_suffix=target_id,
             )
+            add_main_xhtml(txt=txt,  name="deletion", main_name='source', id_suffix=id_v1)
         elif isinstance(z, I):
             logger.debug("INSERTION".center(120, "$"))
             target_id = f"v2_{z.start}_{z.end}"
@@ -437,6 +477,7 @@ def process(
                 end=z.end,
                 attributes=dict(corresp=target_id),
                 name="addition",
+                id_suffix=target_id,
             )
 
         elif isinstance(z, DA):
@@ -455,15 +496,19 @@ def process(
                 )
             else:
                 tag = ""
+                raise NotImplementedError('Cannot find a reference')
             # zbody+=str(tag)+op.extract(z1.rchanges, z.start, z.end)
-            zbody += str(tag) + get_block(z.start, z.end)
+            txt = get_block(z.start, z.end)
+            zbody += str(tag) + txt
             add_list(
                 z=z1,
                 start=z.start,
                 end=z.end,
                 attributes=dict(target=id_v1, corresp=id_v2),
                 name="transpose",
+                id_suffix=id_v1,
             )
+            add_main_xhtml(txt=txt, name="transpose", main_name='source', id_suffix=id_v1)
         elif isinstance(z, DB):
             logger.debug("MOVE B".center(120, "$"))
 
@@ -481,14 +526,17 @@ def process(
                 "metamark", function="subst", target=id_v1, corresp=id_v2
             )
             # zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
-            zbody += str(tag) + get_block(z.a_start, z.a_end)
+            txt = get_block(z.a_start, z.a_end)
+            zbody += str(tag) + txt
             add_list(
                 z=z2,
                 start=z.b_start,
                 end=z.b_end,
                 attributes=dict(target=id_v1, corresp=id_v2),
                 name="substitution",
+                id_suffix=id_v1,
             )
+            add_main_xhtml(txt=txt,  name="substitution", main_name='source', id_suffix=id_v1)
         else:
             raise NotImplementedError(f"Element of type {z} is not supported")
 
@@ -531,6 +579,11 @@ def process(
             output_filepath = pathlib.Path(xhtml_output_dir) /  f"{ops2xhtml[name]['file']}_py.xhtml"
             output_filepath.write_text('\n'.join(xhtml_list), encoding="utf-8")
             logger.info(f"Write {name} list to {str(output_filepath)}")
+        for name, xhtml_list in xhtml_mains.items():
+            output_filepath = pathlib.Path(xhtml_output_dir) / f"{name}_py.xhtml"
+            xhtml_content = "\n".join(xhtml_list)
+            output_filepath.write_text(xhtml_content, encoding="utf-8")
+            logger.info(f"Write {name} main to {str(output_filepath)}")
 
 
 
