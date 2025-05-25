@@ -107,7 +107,7 @@ def run(
         target_filepath=target_filepath,
         parameters=parameters,
         output_filepath=raw_output_filepath,
-        xhtml_output_dir=xhtml_output_dir
+        xhtml_output_dir=xhtml_output_dir,
     )
     debug_filepaths.append(output_filepath)
     p.apply_post_processing(

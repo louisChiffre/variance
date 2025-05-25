@@ -176,7 +176,7 @@ def calc_revisions(z1: Output, z2: Output, parameters: md.Parameters) -> Result:
     assert "".join([z1.txt[k[0] : k[1]] for k in z]) == z1.txt
 
     # then the second text
-    # requires more work
+    # we need to sort them first
     def gen():
         # Insertion and move
         yield from [(k.start, k.end) for k in deltas if isinstance(k, (I, DB))]
@@ -281,7 +281,7 @@ def process(
     ops2xhtml = {
         "deletion": dict(href="#as", id="lbs", file="s"),
         "addition": dict(href="#bi", id="lai", file="i"),
-        "transpose": dict(href="#ad", id="lbd",file="d"),
+        "transpose": dict(href="#ad", id="lbd", file="d"),
         "substitution": dict(href="#ar", id="lbr", file="r"),
         "bc": dict(href="#bc", id="ac", file="bc"),
     }
@@ -317,27 +317,29 @@ def process(
     def add_main_xhtml(txt, name, main_name, id_suffix):
         ops = ops2xhtml[name]
         name2class_name = {
-            'bc': "span_c sync sync-single",
-            'deletion': "span_s",
-            'substitution': "sync sync-single span_r",
-            'transpose': "sync sync-single span_d",
+            "bc": "span_c sync sync-single",
+            "deletion": "span_s",
+            "substitution": "sync sync-single span_r",
+            "transpose": "sync sync-single span_d",
+            "addition": "span_i",
         }
         name2element_name = {
             "bc": "a",
             "substitution": "a",
             "deletion": "span",
             "transpose": "a",
+            "addition": "span",
         }
         txt_ = txt
         # we rem
         txt2rep = (
-             ("\n", ""),
+            ("\n", ""),
             # ("<p/>", "\n"),
             # ("<p>", ""),
             ("<p/>", "<br></br>"),
             ("<p>", ""),
             ("</p>", "<br></br>"),
-            ("</div>", ""),            
+            ("</div>", ""),
             ("<div>", ""),
         )
         for a, b in txt2rep:
@@ -349,6 +351,7 @@ def process(
         li_id = f"{ops['id']}_{id_suffix}"
         xhtml = f'<{element_name} class="{class_name}"  data-tags="" href="{href_id}" id="{li_id}">{txt}</{element_name}>'
         xhtml_mains[main_name].append(xhtml)
+
     def add_list_xhtml(z: Output, start, end, attributes, name, id_suffix):
         ops = ops2xhtml[name]
         txt = op.extract(z.rchanges, start, end)
@@ -362,18 +365,25 @@ def process(
             ("</div>", ""),
         )
         for a, b in txt2rep:
-            #logger.info(f"replacing {a=} with {b}")
+            # logger.info(f"replacing {a=} with {b}")
             txt = txt.replace(a, b)
-        #xhtml_counter[name] += 1
-        #id_suffix = f"_{xhtml_counter[name]:05d}"
+        # xhtml_counter[name] += 1
+        # id_suffix = f"_{xhtml_counter[name]:05d}"
         href_id = f"{ops['href']}_{id_suffix}"
         li_id = f"{ops['id']}_{id_suffix}"
         li_element = f'<li><a class="sync" data-tags="" href="{href_id}" id="{li_id}">{txt}</a></li>'
         xhtml_lists[name].append(li_element)
 
     def add_list(z: Output, start, end, attributes, name, id_suffix):
-        add_list_xml(z=z,start=start, end=end, attributes=attributes, name=name)
-        add_list_xhtml(z=z, start=start, end=end, attributes=attributes, name=name, id_suffix=id_suffix)
+        add_list_xml(z=z, start=start, end=end, attributes=attributes, name=name)
+        add_list_xhtml(
+            z=z,
+            start=start,
+            end=end,
+            attributes=attributes,
+            name=name,
+            id_suffix=id_suffix,
+        )
 
     def metamark(function: str, target: str):
         """creates a metamark"""
@@ -393,17 +403,23 @@ def process(
     # we need to keep track of the moves
     txt2delta = {z1.txt[k.start : k.end]: k for k in res.deltas if isinstance(k, DA)}
 
-    RESULT = []
-    BLOCKS = []
+    # Dictionary to store RESULT and BLOCKS for each text
+    Z_DATA = {"z1": {"RESULT": [], "BLOCKS": []}, "z2": {"RESULT": [], "BLOCKS": []}}
 
-    def get_block(start, end):
-        """retrieve the original xml text"""
-        txt = op.extract(z1.rchanges, start, end)
+    def get_block(start, end, z):
+        assert z in (z1, z2)
+        txt = op.extract(z.rchanges, start, end)
+
+        # Use the appropriate tracking variables based on which text we're processing
+        key = "z1" if z == z1 else "z2"
+        RESULT = Z_DATA[key]["RESULT"]
+        BLOCKS = Z_DATA[key]["BLOCKS"]
+
         if BLOCKS:
             # We verify that the blocks are contiguous to guarantee the text is invariant
             expected_start = BLOCKS[-1][-1]
             if expected_start != start:
-                missing_txt = op.extract(z1.rchanges, expected_start, start)
+                missing_txt = op.extract(z.rchanges, expected_start, start)
                 raise ValueError(
                     f"Text [{missing_txt}] is missing. Expected block to start at {expected_start}, but found {start}. Blocks are not contiguous."
                 )
@@ -412,14 +428,15 @@ def process(
         RESULT.append(txt)
         actual = "".join(RESULT)
         # We verify that we are re-constructing the original text
-        if not z1.rchanges.text.startswith(actual):
+        if not z.rchanges.text.startswith(actual):
             # Special case when there was the deletion of section at the beginning of the block
-            x = op.extract(z1.rchanges, start - 1, end)
-            xx = RESULT[-2]
-            txt = concat_overlap(xx, x)[len(xx) :]
-            RESULT[-1] = txt
-            actual = "".join(RESULT)
-            assert z1.rchanges.text.startswith(actual)
+            x = op.extract(z.rchanges, start - 1, end)
+            if len(RESULT) >= 2:
+                xx = RESULT[-2]
+                txt = concat_overlap(xx, x)[len(xx) :]
+                RESULT[-1] = txt
+                actual = "".join(RESULT)
+                assert z.rchanges.text.startswith(actual)
 
         return txt
 
@@ -437,11 +454,10 @@ def process(
                 "anchor", **{"xml:id": id_v1, "corresp": id_v2, "function": "bc"}
             )
             # zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
-            txt = get_block(z.a_start, z.a_end)
+            txt = get_block(z.a_start, z.a_end, z=z1)
             zbody += str(tag) + txt
 
-            add_main_xhtml(txt=txt,  name="bc", main_name='source', id_suffix=id_v1)
-
+            add_main_xhtml(txt=txt, name="bc", main_name="source", id_suffix=id_v1)
 
         elif isinstance(z, S):
             logger.debug("SUPPRESION".center(120, "$"))
@@ -453,7 +469,7 @@ def process(
             else:
                 attributes = {"corresp": target_id}
             # zbody+=str(tag)+op.extract(z1.rchanges, z.start, z.end)
-            txt = get_block(z.start, z.end)
+            txt = get_block(z.start, z.end, z=z1)
             zbody += str(tag) + txt
             add_list(
                 z=z1,
@@ -463,7 +479,9 @@ def process(
                 name="deletion",
                 id_suffix=target_id,
             )
-            add_main_xhtml(txt=txt,  name="deletion", main_name='source', id_suffix=id_v1)
+            add_main_xhtml(
+                txt=txt, name="deletion", main_name="source", id_suffix=id_v1
+            )
         elif isinstance(z, I):
             logger.debug("INSERTION".center(120, "$"))
             target_id = f"v2_{z.start}_{z.end}"
@@ -496,9 +514,9 @@ def process(
                 )
             else:
                 tag = ""
-                raise NotImplementedError('Cannot find a reference')
+                raise NotImplementedError("Cannot find a reference")
             # zbody+=str(tag)+op.extract(z1.rchanges, z.start, z.end)
-            txt = get_block(z.start, z.end)
+            txt = get_block(z.start, z.end, z=z1)
             zbody += str(tag) + txt
             add_list(
                 z=z1,
@@ -508,15 +526,17 @@ def process(
                 name="transpose",
                 id_suffix=id_v1,
             )
-            add_main_xhtml(txt=txt, name="transpose", main_name='source', id_suffix=id_v1)
+            add_main_xhtml(
+                txt=txt, name="transpose", main_name="source", id_suffix=id_v1
+            )
         elif isinstance(z, DB):
             logger.debug("MOVE B".center(120, "$"))
 
             txt = z2.txt[z.start : z.end]
             assert txt in txt2delta, f"Cannot find a delta matching with {txt=}"
             z_ = txt2delta[txt]
-            id_v1 = f"v1_{z_.start}_{z_.end}"
-            tag = metamark(function="trans", target=id_v1)
+            id_v2 = f"v2_{z_.start}_{z_.end}"
+            tag = metamark(function="trans", target=id_v2)
             zbody += str(tag)
 
         elif isinstance(z, R):
@@ -526,7 +546,7 @@ def process(
                 "metamark", function="subst", target=id_v1, corresp=id_v2
             )
             # zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
-            txt = get_block(z.a_start, z.a_end)
+            txt = get_block(z.a_start, z.a_end, z=z1)
             zbody += str(tag) + txt
             add_list(
                 z=z2,
@@ -536,12 +556,53 @@ def process(
                 name="substitution",
                 id_suffix=id_v1,
             )
-            add_main_xhtml(txt=txt,  name="substitution", main_name='source', id_suffix=id_v1)
+            add_main_xhtml(
+                txt=txt, name="substitution", main_name="source", id_suffix=id_v1
+            )
         else:
             raise NotImplementedError(f"Element of type {z} is not supported")
 
+    def gen_detlas_target():
+        # Insertion and move
+        yield from [(k.start, k) for k in res.deltas if isinstance(k, (I, DB))]
+        # Block commom
+        yield from [(k.b_start, k) for k in res.deltas if isinstance(k, (BC, R))]
+
+    deltas_target = sorted(gen_detlas_target())
+    for i, sz in tqdm.tqdm(
+        enumerate(deltas_target), desc="processing deltas", total=len(deltas_target)
+    ):
+        _, z = sz
+        if isinstance(z, BC):
+            logger.debug("BLOC COMMUN".center(120, "$"))
+            id_v2 = f"v2_{z.b_start}_{z.b_end}"
+
+            # zbody+=str(tag)+op.extract(z1.rchanges, z.a_start, z.a_end)
+            txt = get_block(z.b_start, z.b_end, z=z2)
+            add_main_xhtml(txt=txt, name="bc", main_name="target", id_suffix=id_v2)
+        elif isinstance(z, I):
+            logger.debug("INSERTION".center(120, "$"))
+            target_id = f"v2_{z.start}_{z.end}"
+            txt = get_block(z.start, z.end, z=z2)
+            add_main_xhtml(
+                txt=txt, name="addition", main_name="target", id_suffix=target_id
+            )
+        elif isinstance(z, DB):
+            logger.debug("MOVE B".center(120, "$"))
+            target_id = f"v1_{z_.start}_{z_.end}"
+            txt = get_block(z.start, z.end, z=z2)
+            add_main_xhtml(
+                txt=txt, name="transpose", main_name="target", id_suffix=target_id
+            )
+        elif isinstance(z, R):
+            id_v2 = f"v2_{z.b_start}_{z.b_end}"
+            txt = get_block(z.b_start, z.b_end, z=z2)
+            add_main_xhtml(
+                txt=txt, name="substitution", main_name="target", id_suffix=id_v2
+            )
+
     # We verify we have reconstructed the original text
-    actual = "".join(RESULT)
+    actual = "".join(Z_DATA["z1"]["RESULT"])
     expected = z1.rchanges.text
     testfixtures.compare(
         actual,
@@ -550,6 +611,9 @@ def process(
         y_label="original text",
         raises=True,
     )
+
+    # TODO do it for z2 as well
+
     # pathlib.Path("text.xml").write_text(zbody, encoding="utf-8")
     root.append(ET.fromstring("<body>" + zbody + "</body>"))
     tree = ET.ElementTree(root)
@@ -574,18 +638,20 @@ def process(
         f.write(pretty_xml_str)
     debug_filepaths.append(output_filepath)
 
+    from bs4 import BeautifulSoup
+
     if xhtml_output_dir:
         for name, xhtml_list in xhtml_lists.items():
-            output_filepath = pathlib.Path(xhtml_output_dir) /  f"{ops2xhtml[name]['file']}_py.xhtml"
-            output_filepath.write_text('\n'.join(xhtml_list), encoding="utf-8")
+            output_filepath = (
+                pathlib.Path(xhtml_output_dir) / f"{ops2xhtml[name]['file']}_py.xhtml"
+            )
+            output_filepath.write_text("\n".join(xhtml_list), encoding="utf-8")
             logger.info(f"Write {name} list to {str(output_filepath)}")
         for name, xhtml_list in xhtml_mains.items():
             output_filepath = pathlib.Path(xhtml_output_dir) / f"{name}_py.xhtml"
             xhtml_content = "\n".join(xhtml_list)
             output_filepath.write_text(xhtml_content, encoding="utf-8")
             logger.info(f"Write {name} main to {str(output_filepath)}")
-
-
 
     return debug_filepaths
 
