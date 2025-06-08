@@ -357,21 +357,16 @@ def process(
         txt = op.extract(z.rchanges, start, end)
         txt_ = txt
         # we rem
-        txt2rep = (
-            ("\n", ""),
-            ("<p/>", "\n"),
-            ("<p>", ""),
-            ("</p>", "\n"),
-            ("</div>", ""),
-        )
-        for a, b in txt2rep:
-            # logger.info(f"replacing {a=} with {b}")
-            txt = txt.replace(a, b)
+        txt = txt2xhtml(txt)
         # xhtml_counter[name] += 1
         # id_suffix = f"_{xhtml_counter[name]:05d}"
         href_id = f"{ops['href']}_{id_suffix}"
         li_id = f"{ops['id']}_{id_suffix}"
         li_element = f'<li><a class="sync" data-tags="" href="{href_id}" id="{li_id}">{txt}</a></li>'
+        # We verify the li_element is well-formed XML
+        # breakpoint()
+        assert not has_xml_errors_in_string(li_element)
+
         xhtml_lists[name].append(li_element)
 
     def add_list(z: Output, start, end, attributes, name, id_suffix):
@@ -642,10 +637,14 @@ def process(
 
     if xhtml_output_dir:
         for name, xhtml_list in xhtml_lists.items():
+            assert not has_xml_errors_in_list_of_strings(
+                xhtml_list
+            ), f"XML errors in {name} list"
             output_filepath = (
                 pathlib.Path(xhtml_output_dir) / f"{ops2xhtml[name]['file']}_py.xhtml"
             )
-            output_filepath.write_text("\n".join(xhtml_list), encoding="utf-8")
+            xml_string = "\n".join(xhtml_list)
+            output_filepath.write_text(xml_string, encoding="utf-8")
             logger.info(f"Write {name} list to {str(output_filepath)}")
         for name, xhtml_list in xhtml_mains.items():
             output_filepath = pathlib.Path(xhtml_output_dir) / f"{name}_py.xhtml"
@@ -654,6 +653,46 @@ def process(
             logger.info(f"Write {name} main to {str(output_filepath)}")
 
     return debug_filepaths
+
+
+def has_xml_errors_in_string(xml_string):
+    try:
+        ET.fromstring(f"<root>{xml_string}</root>")
+        return False  # No errors
+    except ET.ParseError as e:
+        # Extract the position information from the error
+        line_no = (
+            getattr(e, "position", (None, None))[0]
+            if hasattr(e, "position")
+            else "unknown"
+        )
+        col_no = (
+            getattr(e, "position", (None, None))[1]
+            if hasattr(e, "position")
+            else "unknown"
+        )
+
+        # Format the error message with line and position
+        error_msg = f"XML Error at line {line_no}, column {col_no}: {str(e)}"
+
+        # Print a snippet of the problematic XML for context
+        lines = xml_string.split("\n")
+        context = (
+            "\n".join(lines[max(0, line_no - 2) : line_no + 1])
+            if line_no != "unknown"
+            else xml_string[:100]
+        )
+
+        print(error_msg)
+        print(f"XML context:\n{context}")
+        print(f"Full problematic XML: {xml_string}")
+
+        return True  # XML is malformed
+
+
+def has_xml_errors_in_list_of_strings(xml_strings):
+    """Check if any string in the list is a malformed XML."""
+    return any(has_xml_errors_in_string(xml_string) for xml_string in xml_strings)
 
 
 def apply_post_processing(input_filepath: pathlib.Path, output_filepath: pathlib.Path):
@@ -815,3 +854,72 @@ def create_xhtml(source_filepath, output_dir):
         logger.error(f"STDOUT: {e.stdout}")
         logger.error(f"STDERR: {e.stderr}")
         raise
+
+
+def log_io(filename="io_log.txt"):
+    def decorator(func):
+        def wrapper(arg):
+            try:
+                result = func(arg)
+                with open(filename, "a") as f:
+                    f.write(f"({arg!r}, {result!r})\n")
+                return result
+            except Exception:
+                with open(filename, "a") as f:
+                    f.write(f"({arg!r}, 'ERR')\n")
+                raise
+
+        return wrapper
+
+    return decorator
+
+
+def replace_emph_with_em(txt: str) -> str:
+    """Replace <emph> tags with <em> tags in the given text."""
+
+    # we need to detect <emph> tags that are not closed properly
+    # we collect the <emph> and </emph> tags in a list
+    tags = re.findall(r"</?emph>", txt)
+    stack = []
+    orphans = []
+
+    for tag in tags:
+        if tag == "<emph>":
+            stack.append(tag)
+        elif tag == "</emph>":
+            if stack:
+                stack.pop()
+            else:
+                orphans.append(tag)
+    if stack:
+        assert not orphans, f"Orphaned emph tags: {orphans}"
+        orphans = stack
+    if orphans:
+        if not len(orphans) == 1:
+            raise NotImplementedError(
+                f"Cannot handle multiple orphaned emph tags: {orphans}"
+            )
+        tag = orphans[0]
+        if tag == "</emph>":
+            txt = "<emph>" + txt
+        elif tag == "<emph>":
+            txt = txt + "</emph>"
+        else:
+            raise NotImplementedError(f"Cannot handle orphaned emph tag: {tag}")
+    return txt.replace("<emph>", "<em>").replace("</emph>", "</em>")
+
+
+@log_io("io_log.txt")
+def txt2xhtml(txt):
+    txt = replace_emph_with_em(txt)
+    txt2rep = (
+        ("\n", ""),
+        ("<p/>", "\n"),
+        ("<p>", ""),
+        ("</p>", "\n"),
+        ("</div>", ""),
+    )
+    for a, b in txt2rep:
+        # logger.info(f"replacing {a=} with {b}")
+        txt = txt.replace(a, b)
+    return txt

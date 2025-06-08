@@ -207,3 +207,19 @@ def test_synthetic(v1, v2, check_function, expected_exception):
     if check_function:
         check_function(result)
     # Add assertions or other test logic as needed
+
+
+@pytest.mark.parametrize(
+    "txt,expected",
+    [
+        ("<emph>potiùs mori quàm", "<em>potiùs mori quàm</em>"),
+        ("…</emph></p>\n", "<em>…</em>\n"),
+        (
+            "</p>\n<p/>\n<p>SCÈNE DE LA VIE DE PROVINCE</p>\n<p/>\n<p>[23 octobre 1836]</p>\n<p>I.",
+            "\n\nSCÈNE DE LA VIE DE PROVINCE\n\n[23 octobre 1836]\nI.",
+        ),
+    ],
+)
+def test_txt2xhtml(txt, expected):
+    result = p.txt2xhtml(txt)
+    assert result == expected, f"Expected {expected}, got {result}"
