@@ -60,12 +60,16 @@ def test_post_processing(directory_name, filename_1, filename_2):
     )
 
     output_filepath = test_dir / f"{filename_1}_{filename_2}.output.xml"
-    p.process(
-        source_filepath=p1_xml,
-        target_filepath=p2_xml,
-        parameters=parameters,
-        output_filepath=output_filepath,
-    )
+    # Create a temporary directory for test output
+    with tempfile.TemporaryDirectory() as temp_dir:
+        xhtml_output_dir = Path(temp_dir)
+        p.process(
+            source_filepath=p1_xml,
+            target_filepath=p2_xml,
+            parameters=parameters,
+            output_filepath=output_filepath,
+            xhtml_output_dir=xhtml_output_dir,
+        )
 
 
 synthetic_xml_template = """
@@ -190,6 +194,7 @@ def test_synthetic(v1, v2, check_function, expected_exception):
         target_filepath=f2,
         parameters=parameters,
         output_filepath=output_filepath,
+        xhtml_output_dir=None,
     )
     # Check if an exception is expected
     if expected_exception:

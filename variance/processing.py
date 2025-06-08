@@ -514,7 +514,7 @@ def process(
                 )
             else:
                 tag = ""
-                raise NotImplementedError("Cannot find a reference")
+                # raise NotImplementedError("Cannot find a reference")
             # zbody+=str(tag)+op.extract(z1.rchanges, z.start, z.end)
             txt = get_block(z.start, z.end, z=z1)
             zbody += str(tag) + txt
