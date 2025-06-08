@@ -357,7 +357,7 @@ def process(
         txt = op.extract(z.rchanges, start, end)
         txt_ = txt
         # we rem
-        txt = txt2xhtml(txt)
+        txt = txt2list_xhtml(txt)
         # xhtml_counter[name] += 1
         # id_suffix = f"_{xhtml_counter[name]:05d}"
         href_id = f"{ops['href']}_{id_suffix}"
@@ -909,14 +909,20 @@ def replace_emph_with_em(txt: str) -> str:
     return txt.replace("<emph>", "<em>").replace("</emph>", "</em>")
 
 
+def remove_pb_tags(txt: str) -> str:
+    """Remove entire <pb> tags from the text also removing the content inside them."""
+    return re.sub(r"</?pb\b[^>]*>", "", txt)
+
+
 @log_io("io_log.txt")
-def txt2xhtml(txt):
+def txt2list_xhtml(txt):
     txt = replace_emph_with_em(txt)
+    txt = remove_pb_tags(txt)
     txt2rep = (
         ("\n", ""),
-        ("<p/>", "\n"),
+        ("<p/>", "¶"),
         ("<p>", ""),
-        ("</p>", "\n"),
+        ("</p>", "¶"),
         ("</div>", ""),
     )
     for a, b in txt2rep:

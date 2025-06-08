@@ -212,14 +212,17 @@ def test_synthetic(v1, v2, check_function, expected_exception):
 @pytest.mark.parametrize(
     "txt,expected",
     [
+        ('</p>\n<p>– ', '¶– '),
+        # ('</p>\n<p/>\n<p/>\n<p/>\n<p><pb facs="010.png" pagination="5a"/>[26 octobre 1836]</p>\n<p>LA CHASTE SUZANNE ET SES DEUX VIEILLARDS.</p>\n', '\n\n\n\n[26 octobre 1836]\nLA CHASTE SUZANNE ET SES DEUX VIEILLARDS.\n'),
+        ('<pb facs="010.png" pagination="5a"/>[26 octobre 1836]', "[26 octobre 1836]"),
         ("<emph>potiùs mori quàm", "<em>potiùs mori quàm</em>"),
-        ("…</emph></p>\n", "<em>…</em>\n"),
+        ("…</emph>abd", "<em>…</em>abd"),
         (
             "</p>\n<p/>\n<p>SCÈNE DE LA VIE DE PROVINCE</p>\n<p/>\n<p>[23 octobre 1836]</p>\n<p>I.",
-            "\n\nSCÈNE DE LA VIE DE PROVINCE\n\n[23 octobre 1836]\nI.",
+            "¶¶SCÈNE DE LA VIE DE PROVINCE¶¶[23 octobre 1836]¶I.",
         ),
     ],
 )
 def test_txt2xhtml(txt, expected):
-    result = p.txt2xhtml(txt)
+    result = p.txt2list_xhtml(txt)
     assert result == expected, f"Expected {expected}, got {result}"
