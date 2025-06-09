@@ -212,7 +212,7 @@ def test_synthetic(v1, v2, check_function, expected_exception):
 @pytest.mark.parametrize(
     "txt,expected",
     [
-        ('</p>\n<p>– ', '¶– '),
+        ("</p>\n<p>– ", "¶– "),
         # ('</p>\n<p/>\n<p/>\n<p/>\n<p><pb facs="010.png" pagination="5a"/>[26 octobre 1836]</p>\n<p>LA CHASTE SUZANNE ET SES DEUX VIEILLARDS.</p>\n', '\n\n\n\n[26 octobre 1836]\nLA CHASTE SUZANNE ET SES DEUX VIEILLARDS.\n'),
         ('<pb facs="010.png" pagination="5a"/>[26 octobre 1836]', "[26 octobre 1836]"),
         ("<emph>potiùs mori quàm", "<em>potiùs mori quàm</em>"),
@@ -225,4 +225,30 @@ def test_synthetic(v1, v2, check_function, expected_exception):
 )
 def test_txt2xhtml(txt, expected):
     result = p.txt2list_xhtml(txt)
+    assert result == expected, f"Expected {expected}, got {result}"
+
+
+@pytest.mark.parametrize(
+    "txt,expected",
+    [
+        (
+            '<div>\n<p><pb facs="001.png" pagination="1a"/>LA VIEILLE FILLE',
+            '<span class="page-marker" data-image-name="001"><span class="page-number">1a</span><img src="/img/settings/page_left.svg"/></span>LA VIEILLE FILLE',
+        ),
+        (
+            "</p>\n<p/>\n<p>SCÈNE DE LA VIE DE PROVINCE</p>\n<p/>\n<p>[23 octobre 1836]</p>\n<p>I.",
+            "<br></br><br></br>SCÈNE DE LA VIE DE PROVINCE<br></br><br></br>[23 octobre 1836]<br></br>I.",
+        ),
+        (
+            " LA CHASTE SUZANNE ET SES DEUX VIEILLARDS",
+            " LA CHASTE SUZANNE ET SES DEUX VIEILLARDS",
+        ),
+        (
+            '<p>– Faites donc tous deux un p<pb facs="007.png" pagination="7"/>iquet, dit-elle sans y mettre de malice.</p>\n<p>Du Bousquier sourit',
+            '– Faites donc tous deux un p<span class="page-marker" data-image-name="007"><span class="page-number">7</span><img src="/img/settings/page_left.svg"/></span>iquet, dit-elle sans y mettre de malice.<br></br>Du Bousquier sourit',
+        ),
+    ],
+)
+def test_txt2main_xml(txt, expected):
+    result = p.txt2main_xml(txt)
     assert result == expected, f"Expected {expected}, got {result}"

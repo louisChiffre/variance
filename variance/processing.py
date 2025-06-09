@@ -208,7 +208,7 @@ def process(
     output_filepath: pathlib.Path,
     xhtml_output_dir: pathlib.Path,
 ) -> list[pathlib.Path]:
-    """Compare two TEI XML files and generate a new TEI XML file describing the changes between the two versions.
+    """Compare two TEI XML files and generate a new TEI XML file describing the changes between the two versions
 
     Args:
         source_filepath (pathlib.Path): The path to the source TEI XML file.
@@ -332,18 +332,7 @@ def process(
         }
         txt_ = txt
         # we rem
-        txt2rep = (
-            ("\n", ""),
-            # ("<p/>", "\n"),
-            # ("<p>", ""),
-            ("<p/>", "<br></br>"),
-            ("<p>", ""),
-            ("</p>", "<br></br>"),
-            ("</div>", ""),
-            ("<div>", ""),
-        )
-        for a, b in txt2rep:
-            txt = txt.replace(a, b)
+        txt = txt2main_xml(txt)
 
         class_name = name2class_name[name]
         element_name = name2element_name[name]
@@ -856,7 +845,7 @@ def create_xhtml(source_filepath, output_dir):
         raise
 
 
-def log_io(filename="io_log.txt"):
+def log_io(filename):
     def decorator(func):
         def wrapper(arg):
             try:
@@ -914,7 +903,8 @@ def remove_pb_tags(txt: str) -> str:
     return re.sub(r"</?pb\b[^>]*>", "", txt)
 
 
-@log_io("io_log.txt")
+# In case you want to log the input and output of the function
+# @log_io("txt2list_log.txt")
 def txt2list_xhtml(txt):
     txt = replace_emph_with_em(txt)
     txt = remove_pb_tags(txt)
@@ -928,4 +918,42 @@ def txt2list_xhtml(txt):
     for a, b in txt2rep:
         # logger.info(f"replacing {a=} with {b}")
         txt = txt.replace(a, b)
+    return txt
+
+
+PB_TAG = re.compile(r"<pb\s+([^>/]*?)\s*/>")
+
+
+def _pb_repl(match: re.Match) -> str:
+    attrs = dict(re.findall(r'(\w+)="(.*?)"', match.group(1)))
+    facs = attrs.get("facs", "")
+    pagination = attrs.get("pagination", "")
+    img_name = facs.rsplit(".", 1)[0] if "." in facs else facs
+    return (
+        f'<span class="page-marker" data-image-name="{img_name}">'
+        f'<span class="page-number">{pagination}</span>'
+        f'<img src="/img/settings/page_left.svg"/></span>'
+    )
+
+
+def pb_to_main_xhtml(xml: str) -> str:
+    """Replace every <pb …/> with the required HTML snippet, leave everything else untouched."""
+    return PB_TAG.sub(_pb_repl, xml)
+
+
+# @log_io("txt2main_log.txt")
+def txt2main_xml(txt):
+    txt2rep = (
+        ("\n", ""),
+        # ("<p/>", "\n"),
+        # ("<p>", ""),
+        ("<p/>", "<br></br>"),
+        ("<p>", ""),
+        ("</p>", "<br></br>"),
+        ("</div>", ""),
+        ("<div>", ""),
+    )
+    for a, b in txt2rep:
+        txt = txt.replace(a, b)
+    txt = pb_to_main_xhtml(txt)
     return txt
