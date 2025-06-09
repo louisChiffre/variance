@@ -637,7 +637,7 @@ def process(
             logger.info(f"Write {name} list to {str(output_filepath)}")
         for name, xhtml_list in xhtml_mains.items():
             output_filepath = pathlib.Path(xhtml_output_dir) / f"{name}_py.xhtml"
-            xhtml_content = "\n".join(xhtml_list)
+            xhtml_content = "".join(xhtml_list)
             output_filepath.write_text(xhtml_content, encoding="utf-8")
             logger.info(f"Write {name} main to {str(output_filepath)}")
 
