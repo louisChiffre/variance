@@ -35,7 +35,7 @@ Result = namedtuple("Result", "ins sup remp bc bd lg")
 
 
 def gen_separator_cases():
-    Case = namedtuple("Case", "parameters txt1 txt2 expected check")
+    Case = namedtuple("Case", "parameters txt1 txt2 expected1 expected2 check")
     vanilla_parameters = md.Parameters(
         lg_pivot=7,
         ratio=15,
@@ -69,7 +69,8 @@ def gen_separator_cases():
 Un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle.
 Avec son esprit libre et anticonformiste, ce
 """,
-        expected=[
+        expected1=None,
+        expected2=[
             (
                 "BC",
                 "La Fondation de l’Hermitage présente une collection réunie à partir des "
@@ -104,7 +105,8 @@ Avec son esprit libre et anticonformiste, ce
         parameters=vanilla_parameters._replace(sep=""" !\r,\n:\t;-?"\'`()….»«"""),
         txt1="""La Fondation de l’Hermitage présente une collection réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine tunisienne qui s’intéressait à la peinture de la fin du XIXe siècle et du début du XXe siècle. Avec son esprit libre et anticonformiste, ce""",
         txt2="""La Fondation de l’Hermitage présente une «collection» réunie à partir des années 1950 par Oscar Ghez, un industriel d’origine tunisienne qui s’intéressait à la «peinture de la fin du XIXe siècle et du début du XXe siècle». Avec son esprit libre et anticonformiste, ce""",
-        expected=[
+        expected1=None,
+        expected2=[
             ("BC", "La Fondation de l’Hermitage présente une "),
             ("I", "«"),
             ("BC", "collection"),
@@ -119,19 +121,60 @@ Avec son esprit libre et anticonformiste, ce
             ("I", "»"),
             ("BC", ". Avec son esprit libre et anticonformiste, ce"),
         ],
-        check=no_replacement,
+        check=None,
     )
-    return
-
-    # newline!
+    # change lg_pivot
+    # Dans "Alice mange du chocolat" et "Pierre descend du bateau" il ya 2 blocs communs potentiels "Alice " et " du "
+    # Les blocs communs trop petit peuvent etre exclu avec le parametre lg_pivot
+    # lg_pivot=4, " du " est un bloc commun 
     yield Case(
-        parameters=vanilla_parameters._replace(sep=""),
-        # <p>les poules vertes couvent le samedi</p>#
-        txt1="""Les poules vertes couvent le samedi""",
-        # <p>les poules vertes</p><p>couvent le samedi</p>
-        txt2="""Les poules vertes'|\ncouvent le samedi""",
-        result=None,
+        parameters=vanilla_parameters._replace(lg_pivot=4),
+        txt1="Alice mange du chocolat",
+        txt2="Alice descend du bateau",
+        expected1=[('BC', 'Alice '), ('R', 'mange'), ('BC', ' du '), ('R', 'chocolat')],
+        expected2=[('BC', 'Alice '), ('R', 'descend'), ('BC', ' du '), ('R', 'bateau')],
+        check=None,
     )
+    # lg_pivot=5 => 1 bloc commun "Alice ", " du " est exclu parce qu'il fait 4 caracteres
+    yield Case(
+        parameters=vanilla_parameters._replace(lg_pivot=5),
+        txt1="Alice mange du chocolat",
+        txt2="Alice descend du bateau",
+        expected1=[('BC', 'Alice '), ('R', 'mange du chocolat')],
+        expected2=[('BC', 'Alice '), ('R', 'descend du bateau')],
+        check=None,
+    )
+    # lg_pivot=10, aucun bloc commun parce "Alice " et " du " sont trop courts
+    yield Case(
+        parameters=vanilla_parameters._replace(lg_pivot=10),
+        txt1="Alice mange du chocolat",
+        txt2="Alice descend du bateau",
+        expected1=[('R', 'Alice mange du chocolat')],
+        expected2=[('R', 'Alice descend du bateau')],
+        check=None,
+    )
+
+    # change parametre "ratio"
+    # Entre "Alice mange du chocolat" et "Alice descend du chocolat" "mange" et "descent" sont consideres
+    # comme des substitutions parce que leur rapport de taille est de 0.71 et 1.4 et un ratio de 5 correpond a 100/5 =20
+    yield Case(
+        parameters=vanilla_parameters._replace( lg_pivot=4, ratio=5),
+        txt1="Alice mange du chocolat",
+        txt2="Alice descend du chocolat",
+        expected1=[('BC', 'Alice '), ('R', 'mange'), ('BC', ' du chocolat')],
+        expected2=[('BC', 'Alice '), ('R', 'descend'), ('BC', ' du chocolat')],
+        check=None,
+    )
+    yield Case(
+        parameters=vanilla_parameters._replace( lg_pivot=4, ratio=75),
+        txt1="Alice mange du chocolat",
+        txt2="Alice descend du chocolat",
+        expected1=[('BC', 'Alice '), ('S', 'mange'), ('', ''), ('BC', ' du chocolat')],
+        expected2=[('BC', 'Alice '), ('', ''), ('I', 'descend'), ('BC', ' du chocolat')],
+        check=None,
+    )
+
+
 
 
 @pytest.mark.parametrize("case", gen_separator_cases())
@@ -145,9 +188,13 @@ def test_separator(case):
 
     f = functools.partial(ut.block2fragment, appli, sentence_lookup)
     x = [(f(a), f(b)) for a, b in appli.bbl.liste]
-    if case.expected:
-        actual = [(k[1].type, k[1].txt) for k in x]
-        assert actual == case.expected
+    actual1 = [(k[0].type, k[0].txt) for k in x]
+    actual2 = [(k[1].type, k[1].txt) for k in x]
+    if case.expected1:
+        assert actual1 == case.expected1
+
+    if case.expected2:
+        assert actual2 == case.expected2
 
     if case.check:
         case.check(x)

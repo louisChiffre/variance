@@ -65,15 +65,15 @@ def soustr_l_intervalles(P, L):
 
 
 def miroir(locc, debut, fin):
-    """Prends une liste d'intervalles définis sur l'intervalle [debut,fin]
-    et retourne la différence entre [début,fin] et tous les elements de cette liste
-    en temps linéaire(locc)"""
+    """Prends une liste d'intervalles dï¿½finis sur l'intervalle [debut,fin]
+    et retourne la diffï¿½rence entre [dï¿½but,fin] et tous les elements de cette liste
+    en temps linï¿½aire(locc)"""
     LRes = []
     pos = debut
     for d, f in locc:
         if pos < d:  # intervalle non nul
             LRes.append((pos, d))
-        pos = f  # passe à l'intervalle suivant
+        pos = f  # passe ï¿½ l'intervalle suivant
     if pos < fin:
         LRes.append((pos, fin))  # dernier element eventuel
     # if __debug__:
@@ -81,7 +81,7 @@ def miroir(locc, debut, fin):
     #    for d,f in locc: longueur1 += f-d
     #    for d,f in LRes: longueur2 += f-d
     # print longueur1,longueur2
-    # assert longueur2 == fin-debut-longueur1 #marche pas à cause des chevauchements
+    # assert longueur2 == fin-debut-longueur1 #marche pas ï¿½ cause des chevauchements
 
     return LRes
 

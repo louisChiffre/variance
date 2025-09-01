@@ -192,7 +192,6 @@ class DiffTexts(object):
 
         logging.log(5, "Debut de l'alignement")
         deb_al = time.perf_counter()
-
         aligneur = alignement.AlignAstarRecur(
             l_texte1=self.lg_texte1,
             carOuMot=self.parameters.car_mot,

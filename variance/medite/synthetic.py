@@ -493,8 +493,9 @@ class BiBlocList(object):
         pri1 = (bc1 + bc2 + dep1 + dep2) / (
             bc1 + bc2 + dep1 + dep2 + sup + ins + remp1 + remp2
         )
-        pri2 = (bc1 + bc2) / (bc1 + bc2 + dep1 + dep2)
-        pri3 = (remp1 + remp2) / (sup + ins + remp1 + remp2)
+        
+        pri2 = (bc1 + bc2) / (bc1 + bc2 + dep1 + dep2) if (bc1 + bc2 + dep1 + dep2) > 0 else 0.0
+        pri3 = (remp1 + remp2) / (sup + ins + remp1 + remp2) if (sup + ins + remp1 + remp2) > 0 else 0.0
         pri = (pri1 + pri2 + pri3) / 3.0
         assert 0 <= pri1 <= 1, pri1
         assert 0 <= pri2 <= 1, pri2
@@ -533,9 +534,9 @@ class BiBlocList(object):
         #     (((0.0+dep1+dep2) / max(1.0,(nb_dep1 + nb_dep2)))/ lDep[-1])) / 5.0
         y = (y1 + y2 + y3 + y4 + y5) / 5.0
         assert 0 <= y <= 1, y
-        z0 = (0.0 + bc1 + bc2) / (0.0 + bc1 + bc2 + dep1 + dep2)
-        z1 = (0.0 + dep1 + dep2) / (dep1 + dep2 + ins + sup + remp1 + remp2)
-        z2 = (0.0 + remp1 + remp2) / (sup + ins + remp1 + remp2)
+        z0 = (0.0 + bc1 + bc2) / (0.0 + bc1 + bc2 + dep1 + dep2) if (bc1 + bc2 + dep1 + dep2) > 0 else 0.0
+        z1 = (0.0 + dep1 + dep2) / (dep1 + dep2 + ins + sup + remp1 + remp2) if (dep1 + dep2 + ins + sup + remp1 + remp2) > 0 else 0.0
+        z2 = (0.0 + remp1 + remp2) / (sup + ins + remp1 + remp2) if (sup + ins + remp1 + remp2) > 0 else 0.0
         z = (0.0 + z1 + z2) / 2.0
         assert 0 <= z <= 1, z
 
