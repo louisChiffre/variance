@@ -38,10 +38,7 @@ Utilisez le script `diff.py` pour générer des différences entre des fichiers 
 ```bash
 python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFille/2vf.xml --lg_pivot 7 --ratio 15 --case-sensitive --diacri-sensitive --output-xml test.xml
 ```
-Les séparateurs utilisés par Medite peuvent être spécifié avec l'argument sep.
-```bash
-python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFille/2vf.xml --lg_pivot 7 --ratio 15 --case-sensitive --diacri-sensitive --output-xml test.xml --sep $' !\r,\n:\t;-?"\'`()….»«'
-```
+
 Des sorties XHTML peuvent être générées en utilisant l'option `--xhtml-output-dir` :
 ```bash
 python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFille/2vf.xml --lg_pivot 7 --ratio 15 --case-sensitive --diacri-sensitive --output-xml test.xml --xhtml-output-dir xhtml
@@ -56,17 +53,47 @@ python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFil
 
 #### `lg_pivot`
 Le paramètre `lg_pivot` définit la taille minimale des blocs communs.  
-Entre « Alice mange du chocolat » et « Pierre descend du bateau », il y a 2 blocs communs potentiels : « Alice » et «  du ». « Alice » a une longueur de 5 caractères, «  du » de 3.  
+Entre « Alice mange du chocolat » et « Alice descend du bateau », il y a 2 blocs communs potentiels : « Alice » et «  du ». « Alice » a une longueur de 5 caractères, «  du » de 3.  
 Si `lg_pivot` est à 10, ni « Alice » ni «  du » ne seront considérés comme des blocs communs. Si `lg_pivot` est à 5, « Alice » sera l’unique bloc commun, «  du » étant trop court. Si `lg_pivot` est à 1, « Alice » et «  du » seront des blocs communs.
 
 #### `ratio`
 Le paramètre `ratio` contrôle la propension de Medite à considérer les différences entre deux blocs communs comme des remplacements ou comme des suppressions/insertions.  
-Par exemple, dans les phrases « Alice mange du chocolat » et « Alice descend du chocolat », les deux blocs communs sont « Alice » et «  du chocolat ».  
-On peut considérer soit que « mange » a été substitué par « descend », soit que « mange » a été supprimé et « descend » inséré. Medite prend cette décision sur la base du rapport de taille entre les deux chaînes de caractères. Si leurs tailles sont suffisamment proches, Medite considérera qu’il s’agit d’un remplacement ; sinon, d’une suppression et d’une insertion.
+Par exemple, dans les phrases « Alice mange du chocolat » et « Alice déguste du chocolat », les deux blocs communs sont « Alice » et «  du chocolat ».  
+On peut considérer soit que « mange » a été substitué par « déguste », soit que « mange » a été supprimé et « déguste » inséré. Medite prend cette décision sur la base du rapport de taille entre les deux chaînes de caractères. Si leurs tailles sont suffisamment proches, Medite considérera qu’il s’agit d’un remplacement ; sinon, d’une suppression et d’une insertion.
 
 Le paramètre `ratio` contrôle cette tolérance. Il peut prendre une valeur entre 1 et 100. Un ratio de 50, par exemple, signifie que si le rapport de taille (mesuré par la taille de la plus petite chaîne divisée par la plus grande, exprimé en %) est inférieur à 50 %, le changement sera considéré comme une suppression + insertion plutôt qu’un remplacement.  
-Dans le cas de « mange » (5) et « descend » (7), le rapport de taille est 5/7 ≈ 71,4 % ; avec un ratio de 50, le changement est classé comme une substitution.
+Dans le cas de « mange » (5) et « déguste » (7), le rapport de taille est 5/7 ≈ 71,4 % ; avec un ratio de 50, le changement est classé comme une substitution.
 
+### `sep`
+Le paramètre `sep` indique à Medite quels sont les caractères à considérer comme séparateurs de mots.
+
+Par exemple, dans la phrase « Il a dit bonjour » transformée en « Il a dit "bonjour" », si le guillemet `"` ne fait pas partie des séparateurs, Medite considérera qu'il s'agit d'une transformation de « bonjour » en « "bonjour" » et non de l'ajout de guillemets avant et après « bonjour ».
+
+Par défaut, la valeur de `sep` inclut les caractères suivants :
+
+- Espace : ` `
+- Point d'exclamation : `!`
+- Retour chariot : `\r`
+- Saut de ligne : `\n`
+- Deux-points : `:`
+- Tabulation : `\t`
+- Point-virgule : `;`
+- Trait d'union : `-`
+- Point d'interrogation : `?`
+- Guillemet double : `"`
+- Apostrophe simple : `'`
+- Accent grave : `` ` ``
+- Apostrophe typographique (guillemet simple fermant) : `’`
+- Parenthèse ouvrante : `(`
+- Parenthèse fermante : `)`
+
+Voici un exemple de commande spécifiant le paramètre `sep` :
+```bash
+python scripts/diff.py tests/data/LaVieilleFille/1vf.xml tests/data/LaVieilleFille/2vf.xml --lg_pivot 7 --ratio 15 --case-sensitive --diacri-sensitive --output-xml test.xml --sep $' !\r,\n:\t;-?"\'`()….»«'
+```
+
+### Références académiques
+La page [https://webia.lip6.fr/~ganascia/Medite_Project](https://webia.lip6.fr/~ganascia/Medite_Project) contient une série de publications sur l'algorithme utilisé, notamment [SDH2011.pdf](https://webia.lip6.fr/~ganascia/Medite_Project?action=AttachFile&do=view&target=SDH2011.pdf).
 
 ### Transformer un fichier plat txt en fichier TEI XML
 Le script `txt2tei.py` permet de transformer un fichier texte brut en un fichier TEI XML.

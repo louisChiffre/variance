@@ -155,7 +155,7 @@ Avec son esprit libre et anticonformiste, ce
     )
 
     # change parametre "ratio"
-    # Entre "Alice mange du chocolat" et "Alice descend du chocolat" "mange" et "descent" sont consideres
+    # Entre "Alice mange du chocolat" et "Alice descend du chocolat" "mange" et "descend" sont consideres
     # comme des substitutions parce que leur rapport de taille est de 0.71 et 1.4 et un ratio de 5 correpond a 100/5 =20
     yield Case(
         parameters=vanilla_parameters._replace( lg_pivot=4, ratio=5),
@@ -171,6 +171,25 @@ Avec son esprit libre et anticonformiste, ce
         txt2="Alice descend du chocolat",
         expected1=[('BC', 'Alice '), ('S', 'mange'), ('', ''), ('BC', ' du chocolat')],
         expected2=[('BC', 'Alice '), ('', ''), ('I', 'descend'), ('BC', ' du chocolat')],
+        check=None,
+    )
+    # Si " est dans les separateurs, le changement de bonjour a "bonjour" est considere comme un ajout de guillemet et non pas le remplacement de bonjour a "bonjour"
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=""" !\r,\n:\t;-?"\'`()….»«"""),
+        txt1="Il a dit bonjour",
+        txt2="Il a dit \"bonjour\"",
+        expected1=[('BC', 'Il a dit '), ('', ''), ('BC', 'bonjour'), ('', '')],
+        expected2=[('BC', 'Il a dit '), ('I', '"'), ('BC', 'bonjour'), ('I', '"')],
+        check=None,
+    )
+    
+    # Si on enlève les guillemets doubles des séparateurs, bonjour est remplacé par "bonjour" 
+    yield Case(
+        parameters=vanilla_parameters._replace(sep=""" !\r,\n:\t;-?\'`()….»«"""),
+        txt1="Il a dit bonjour",
+        txt2="Il a dit \"bonjour\"",
+        expected1=[('BC', 'Il a dit '), ('R', 'bonjour')],
+        expected2=[('BC', 'Il a dit '), ('R', '"bonjour"')],
         check=None,
     )
 
